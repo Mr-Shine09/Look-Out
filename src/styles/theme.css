@@ -1,0 +1,105 @@
+/* Lookout design system — dark, terminal-adjacent.
+   Reused across every component so the dashboard reads as one product. */
+
+:root {
+  /* Core palette */
+  --void: #0b1016; /* near-black background */
+  --void-2: #0e151d; /* raised surface */
+  --panel: #121b25; /* card / panel surface */
+  --panel-2: #16212d; /* hover / nested surface */
+  --line: #1f2c3a; /* hairline borders */
+  --line-strong: #2a3a4c;
+
+  /* Accents */
+  --scan: #34d9c8; /* teal — watching / active */
+  --scan-dim: rgba(52, 217, 200, 0.14);
+  --signal: #f5a524; /* amber — real match */
+  --signal-dim: rgba(245, 165, 36, 0.14);
+  --reject: #56657a; /* muted grey — rejected */
+  --reject-dim: rgba(86, 101, 122, 0.12);
+  --danger: #ef5350;
+
+  /* Text */
+  --text: #e6edf3;
+  --text-dim: #9bb0c3;
+  --text-faint: #65798c;
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-head: 'Bricolage Grotesque', system-ui, -apple-system, sans-serif;
+  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Geometry */
+  --radius: 10px;
+  --radius-sm: 6px;
+  --gap: 16px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: radial-gradient(1200px 600px at 80% -10%, #0f1922 0%, var(--void) 55%) no-repeat;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Utility classes */
+.mono {
+  font-family: var(--font-mono);
+}
+.head {
+  font-family: var(--font-head);
+  letter-spacing: -0.01em;
+}
+.dim {
+  color: var(--text-dim);
+}
+.faint {
+  color: var(--text-faint);
+}
+
+/* Scrollbars — keep them on-theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--reject);
+  background-clip: content-box;
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--scan);
+  outline-offset: 2px;
+}
