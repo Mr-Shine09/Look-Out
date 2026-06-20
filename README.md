@@ -64,7 +64,44 @@ src/
 - **Act on a match:** click `⚡ act` on any accepted card to run the five-stage pipeline.
 - **Move the curve:** thumb candidates up/down — the precision curve reacts immediately.
 
+## Redis backend
+
+A FastAPI + Redis Stack backend now lives in `lookout/`. It implements the real REST + WebSocket
+contract from `INTEGRATION.md`, including RediSearch vector dedup, a seed Scout, Claude/stub
+spec compile and judging, feedback learning, and the false-alarm curve.
+
+```bash
+# Redis Stack with RediSearch vectors
+# If Docker is available:
+docker run -d --name lookout-redis -p 6379:6379 redis/redis-stack:latest
+
+# Python backend
+py -3 -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+set REDIS_URL=redis://localhost:6379
+py -3 -m lookout
+```
+
+Backend endpoints:
+
+- `GET /health`
+- `GET /api/watches`
+- `POST /api/watches {"query_text":"..."}`
+- `POST /api/candidates/{id}/feedback {"label":"relevant"|"not_relevant"}`
+- `GET /api/curve`
+- `WS /ws/feed`
+
+Dedup smoke test, after Redis and dependencies are running:
+
+```bash
+py -3 scripts/test_dedup.py
+```
+
+To point the dashboard at the real backend, import `createRealApi` in `src/api/index.js` and return
+`createRealApi(import.meta.env.VITE_API_BASE ?? 'http://localhost:8000')`.
+
 ## Status
 
-All six tasks (scaffold → pipeline) are implemented and building cleanly. Ready to point at the real
-backend when it lands.
+The frontend mock remains the default. The Redis backend implementation is present and syntax-checked;
+full Redis integration requires Redis Stack and Python dependencies installed locally.

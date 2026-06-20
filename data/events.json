@@ -1,0 +1,252 @@
+[
+  {
+    "id": "devpost-ai-berkeley-2026",
+    "title": "AI Berkeley Hackathon 2026",
+    "source": "Devpost",
+    "url": "https://example.com/ai-berkeley",
+    "starts_at": "2026-07-11",
+    "location": "Berkeley, CA",
+    "status": "open",
+    "description": "In-person weekend AI and machine learning hackathon on the UC Berkeley campus near San Francisco. Teams build LLM agents, computer vision tools, and data apps. Registration is open for students and independent builders."
+  },
+  {
+    "id": "mlh-calhacks-ai-2026",
+    "title": "Cal Hacks AI Edition — In Person",
+    "source": "MLH",
+    "url": "https://example.com/calhacks-ai",
+    "starts_at": "2026-07-11",
+    "location": "Berkeley, CA",
+    "status": "open",
+    "description": "In-person weekend AI and machine learning hackathon on the UC Berkeley campus near San Francisco. Teams build LLM agents, computer vision tools, and data apps. Registration is open for students and independent builders."
+  },
+  {
+    "id": "luma-vision-robotics-buildathon",
+    "title": "Bay Area Vision & Robotics Buildathon",
+    "source": "Luma",
+    "url": "https://example.com/vision-robotics",
+    "starts_at": "2026-08-02",
+    "location": "San Jose, CA",
+    "status": "open",
+    "description": "In-person Bay Area buildathon in San Jose for computer vision, robotics, and applied machine learning projects. Registration is open and teams will prototype hardware-aware AI demos over one weekend."
+  },
+  {
+    "id": "devpost-robotics-vision-jam",
+    "title": "South Bay Computer Vision Robotics Jam",
+    "source": "Devpost",
+    "url": "https://example.com/south-bay-vision-jam",
+    "starts_at": "2026-08-02",
+    "location": "San Jose, CA",
+    "status": "open",
+    "description": "In-person Bay Area buildathon in San Jose for computer vision, robotics, and applied machine learning projects. Registration is open and teams will prototype hardware-aware AI demos over one weekend."
+  },
+  {
+    "id": "devpost-global-virtual-ai-sprint",
+    "title": "Global Virtual AI Sprint",
+    "source": "Devpost",
+    "url": "https://example.com/virtual-ai-sprint",
+    "starts_at": "2026-07-20",
+    "location": "Online",
+    "status": "open",
+    "description": "Online-only AI sprint for remote teams across the world. Participants build generative AI demos from home and submit asynchronously. There is no physical venue or in-person component."
+  },
+  {
+    "id": "mlh-ethglobal-sf",
+    "title": "ETHGlobal San Francisco",
+    "source": "MLH",
+    "url": "https://example.com/ethglobal-sf",
+    "starts_at": "2026-09-05",
+    "location": "San Francisco, CA",
+    "status": "open",
+    "description": "In-person Ethereum and Web3 hackathon in San Francisco focused on smart contracts, DeFi, wallets, and crypto infrastructure. Registration is open to blockchain builders."
+  },
+  {
+    "id": "devpost-treehacks-closed",
+    "title": "Stanford TreeHacks",
+    "source": "Devpost",
+    "url": "https://example.com/treehacks",
+    "starts_at": "2026-02-14",
+    "location": "Stanford, CA",
+    "status": "closed",
+    "description": "In-person Stanford hackathon with AI tracks, hardware labs, and product design workshops. The event is near San Francisco but registration is already closed."
+  },
+  {
+    "id": "eventbrite-data-career-fair",
+    "title": "SF Data Engineering Career Fair",
+    "source": "Eventbrite",
+    "url": "https://example.com/data-career-fair",
+    "starts_at": "2026-07-09",
+    "location": "San Francisco, CA",
+    "status": "open",
+    "description": "In-person recruiting career fair in San Francisco for data engineering and analytics roles. Attendees meet employers and listen to info sessions; this is not a hackathon or build event."
+  },
+  {
+    "id": "luma-la-genai-jam",
+    "title": "LA Generative AI Jam",
+    "source": "Luma",
+    "url": "https://example.com/la-genai-jam",
+    "starts_at": "2026-08-22",
+    "location": "Los Angeles, CA",
+    "status": "open",
+    "description": "In-person generative AI hackathon in Los Angeles. Teams build LLM products and media tools. Registration is open, but the venue is far outside the San Francisco Bay Area."
+  },
+  {
+    "id": "devpost-sf-llm-agents",
+    "title": "SF LLM Agents Hackathon",
+    "source": "Devpost",
+    "url": "https://example.com/sf-llm-agents",
+    "starts_at": "2026-07-18",
+    "location": "San Francisco, CA",
+    "status": "open",
+    "description": "In-person LLM agents hackathon in downtown San Francisco. Builders create autonomous agent workflows, retrieval systems, and AI assistants. Registration just opened and spots are available."
+  },
+  {
+    "id": "luma-sf-agent-build-night",
+    "title": "San Francisco Agentic AI Build Night",
+    "source": "Luma",
+    "url": "https://example.com/sf-agent-build-night",
+    "starts_at": "2026-07-18",
+    "location": "San Francisco, CA",
+    "status": "open",
+    "description": "In-person LLM agents hackathon in downtown San Francisco. Builders create autonomous agent workflows, retrieval systems, and AI assistants. Registration just opened and spots are available."
+  },
+  {
+    "id": "eventbrite-oakland-datathon",
+    "title": "Oakland Civic Data Datathon",
+    "source": "Eventbrite",
+    "url": "https://example.com/oakland-civic-datathon",
+    "starts_at": "2026-08-15",
+    "location": "Oakland, CA",
+    "status": "open",
+    "description": "In-person civic data datathon in Oakland. Teams use public datasets, maps, and machine learning to prototype city services. Registration is open and mentors will support new teams."
+  },
+  {
+    "id": "mlh-oakland-civic-ai",
+    "title": "Civic AI Datathon Oakland",
+    "source": "MLH",
+    "url": "https://example.com/civic-ai-oakland",
+    "starts_at": "2026-08-15",
+    "location": "Oakland, CA",
+    "status": "open",
+    "description": "In-person civic data datathon in Oakland. Teams use public datasets, maps, and machine learning to prototype city services. Registration is open and mentors will support new teams."
+  },
+  {
+    "id": "meetup-ai-founder-talks",
+    "title": "AI Founder Fireside Chat",
+    "source": "Meetup",
+    "url": "https://example.com/ai-founder-talks",
+    "starts_at": "2026-07-29",
+    "location": "San Francisco, CA",
+    "status": "open",
+    "description": "Evening panel and networking event for founders discussing AI startups. Attendees listen to talks and meet investors. There is no team build period or hackathon submission."
+  },
+  {
+    "id": "devpost-santa-clara-health-ai",
+    "title": "Health AI Hack Weekend Santa Clara",
+    "source": "Devpost",
+    "url": "https://example.com/health-ai-santa-clara",
+    "starts_at": "2026-09-12",
+    "location": "Santa Clara, CA",
+    "status": "open",
+    "description": "In-person healthcare AI hackathon in Santa Clara. Participants build clinical workflow, privacy-preserving ML, and patient support prototypes. Registration is open for students and professionals."
+  },
+  {
+    "id": "devpost-sacramento-data-hack",
+    "title": "Sacramento Data for Good Hackathon",
+    "source": "Devpost",
+    "url": "https://example.com/sac-data-good",
+    "starts_at": "2026-10-03",
+    "location": "Sacramento, CA",
+    "status": "open",
+    "description": "In-person data science hackathon in Sacramento for nonprofit projects and analytics dashboards. Registration is open, but the event is beyond the requested Bay Area radius."
+  },
+  {
+    "id": "eventbrite-online-llm-workshop",
+    "title": "Remote LLM Workshop Weekend",
+    "source": "Eventbrite",
+    "url": "https://example.com/remote-llm-workshop",
+    "starts_at": "2026-08-01",
+    "location": "Online",
+    "status": "open",
+    "description": "Virtual workshop weekend about prompt engineering and LLM application patterns. Participants watch tutorials online and complete exercises individually without an in-person build event."
+  },
+  {
+    "id": "mlh-palo-alto-edge-ai",
+    "title": "Palo Alto Edge AI Makeathon",
+    "source": "MLH",
+    "url": "https://example.com/palo-alto-edge-ai",
+    "starts_at": "2026-08-30",
+    "location": "Palo Alto, CA",
+    "status": "open",
+    "description": "In-person edge AI makeathon in Palo Alto for embedded ML, on-device vision, and robotics demos. Registration is open and teams will build prototypes during the weekend."
+  },
+  {
+    "id": "devpost-palo-alto-tinyml",
+    "title": "TinyML Edge AI Weekend Palo Alto",
+    "source": "Devpost",
+    "url": "https://example.com/tinyml-palo-alto",
+    "starts_at": "2026-08-30",
+    "location": "Palo Alto, CA",
+    "status": "open",
+    "description": "In-person edge AI makeathon in Palo Alto for embedded ML, on-device vision, and robotics demos. Registration is open and teams will build prototypes during the weekend."
+  },
+  {
+    "id": "luma-berkeley-ai-salon",
+    "title": "Berkeley AI Salon",
+    "source": "Luma",
+    "url": "https://example.com/berkeley-ai-salon",
+    "starts_at": "2026-09-01",
+    "location": "Berkeley, CA",
+    "status": "open",
+    "description": "In-person salon for AI researchers and founders in Berkeley. The event is discussion-oriented with lightning talks and networking rather than a timed hackathon."
+  },
+  {
+    "id": "devpost-climate-ml-hack",
+    "title": "SF Climate ML Hackathon",
+    "source": "Devpost",
+    "url": "https://example.com/sf-climate-ml",
+    "starts_at": "2026-09-19",
+    "location": "San Francisco, CA",
+    "status": "open",
+    "description": "In-person San Francisco hackathon focused on climate modeling, satellite data, and machine learning. Registration is open and teams build deployable data products."
+  },
+  {
+    "id": "devpost-sf-crypto-ai",
+    "title": "AI x Crypto Trading Bot Hack",
+    "source": "Devpost",
+    "url": "https://example.com/ai-crypto-trading",
+    "starts_at": "2026-09-26",
+    "location": "San Francisco, CA",
+    "status": "open",
+    "description": "In-person San Francisco hackathon for crypto trading bots, DeFi automation, token analytics, and blockchain agents. Registration is open but the event is primarily Web3 and crypto."
+  },
+  {
+    "id": "eventbrite-mountain-view-ai-hardware",
+    "title": "Mountain View AI Hardware Buildathon",
+    "source": "Eventbrite",
+    "url": "https://example.com/mv-ai-hardware",
+    "starts_at": "2026-10-10",
+    "location": "Mountain View, CA",
+    "status": "open",
+    "description": "In-person AI hardware buildathon in Mountain View. Teams create sensor, robotics, and edge inference projects. Registration is open for local builders and students."
+  },
+  {
+    "id": "meetup-san-mateo-data-night",
+    "title": "San Mateo Data Viz Night",
+    "source": "Meetup",
+    "url": "https://example.com/san-mateo-data-viz",
+    "starts_at": "2026-08-13",
+    "location": "San Mateo, CA",
+    "status": "open",
+    "description": "In-person data visualization meetup in San Mateo with demos and networking. It is not a hackathon, has no team build window, and no submission deadline."
+  },
+  {
+    "id": "mlh-bay-area-ai-security",
+    "title": "Bay Area AI Security Hackathon",
+    "source": "MLH",
+    "url": "https://example.com/bay-ai-security",
+    "starts_at": "2026-11-07",
+    "location": "San Francisco, CA",
+    "status": "open",
+    "description": "In-person AI security hackathon in San Francisco. Teams build red-teaming tools, model monitoring systems, and secure agent workflows. Registration is open."
+  }
+]
