@@ -3,6 +3,24 @@ import { CandidateCard } from './candidateCard.js';
 import { Pipeline } from './pipeline.js';
 import { PrecisionCurve } from './precisionCurve.js';
 
+/** Tween a number element from its current value to `to` (cubic ease-out). */
+function animateCount(node, to) {
+  const from = parseInt(node.textContent, 10) || 0;
+  if (from === to) {
+    node.textContent = String(to);
+    return;
+  }
+  const dur = 480;
+  const start = performance.now();
+  function step(now) {
+    const t = Math.min(1, (now - start) / dur);
+    const eased = 1 - Math.pow(1 - t, 3);
+    node.textContent = String(Math.round(from + (to - from) * eased));
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 /**
  * STAY — one purpose: show that Lookout is watching, and staying quiet.
  *
@@ -95,11 +113,11 @@ export function StayPage({ api, onReport }) {
 
   function updateStats() {
     const { surfaced, dup, off, silenced, seen } = counts();
-    surfacedBig.textContent = String(surfaced);
-    silencedBig.textContent = String(silenced);
-    dupNum.textContent = String(dup);
-    offNum.textContent = String(off);
-    seenNum.textContent = String(seen);
+    animateCount(surfacedBig, surfaced);
+    animateCount(silencedBig, silenced);
+    animateCount(dupNum, dup);
+    animateCount(offNum, off);
+    animateCount(seenNum, seen);
 
     const total = surfaced + silenced;
     const sPct = total ? Math.round((surfaced / total) * 100) : 0;

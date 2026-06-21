@@ -1,44 +1,45 @@
-/* Lookout design system — editorial monochrome, copied from monopo saigon.
-   Paper White #ffffff + Ink Black #000000, near-zero color, big geometric
-   grotesque display type (Schibsted Grotesk ≈ Roobert) with Raleway for the
-   largest headlines, generous whitespace, crisp hairlines and square corners.
-   Hierarchy comes from weight / fills / scale, not hue — so the suppression
-   story reads through black-vs-grey instead of green/amber.
+/* Lookout design system — dark premium fintech, after Origin (useorigin.com).
+   Obsidian #0f1011 + Void Black on a slow animated aurora; refined off-white
+   type with an elegant high-contrast serif (Fraunces ≈ Lyon Display) for big
+   headlines and a neutral grotesque (Inter ≈ Suisse Int'l) for everything else.
+   Luminous green accent used sparingly + glow. Rich, smooth micro-motion.
    Reused across every component so the dashboard reads as one product. */
 
 :root {
-  /* Core palette — paper + ink */
-  --void: #ffffff; /* paper-white background */
-  --void-2: #f4f2ec; /* raised surface / input fill (warm paper) */
-  --panel: #ffffff; /* card / panel surface */
-  --panel-2: #f1eee7; /* hover / nested surface */
-  --line: #e4e0d6; /* hairline borders */
-  --line-strong: #14110c; /* emphatic ink rule */
+  /* Core palette — Origin obsidian + void black */
+  --void: #000000; /* void black */
+  --obsidian: #0f1011; /* primary app surface */
+  --void-2: #0c0e0f; /* raised surface / input fill */
+  --panel: #141617; /* card / panel surface */
+  --panel-2: #1b1e1f; /* hover / nested surface */
+  --line: rgba(255, 255, 255, 0.09); /* hairline borders */
+  --line-strong: rgba(255, 255, 255, 0.17);
 
-  /* Accents — monochrome. "scan/signal" = ink black; greys carry the rest. */
-  --scan: #000000; /* ink — brand / active / watching */
-  --scan-dim: rgba(0, 0, 0, 0.06);
-  --signal: #000000; /* ink — real match (surfaced) */
-  --signal-dim: rgba(0, 0, 0, 0.06);
-  --reject: #a39e92; /* warm grey — rejected / silenced */
-  --reject-dim: rgba(0, 0, 0, 0.04);
-  --danger: #c0291b;
+  /* Accent — luminous green + glow (used sparingly) */
+  --scan: #c2f24e; /* brand / active / watching */
+  --scan-dim: rgba(194, 242, 78, 0.14);
+  --glow: rgba(194, 242, 78, 0.55);
+  --signal: #c2f24e; /* real match (surfaced) */
+  --signal-dim: rgba(194, 242, 78, 0.12);
+  --reject: #7c7f7a; /* muted grey — rejected / silenced */
+  --reject-dim: rgba(255, 255, 255, 0.05);
+  --danger: #ff6b6b;
 
   /* Text */
-  --text: #000000;
-  --text-dim: #46423a;
-  --text-faint: #918b7d;
+  --text: #f3f5f1;
+  --text-dim: #a7aaa4;
+  --text-faint: #6e716c;
 
   /* Typography */
-  --font-mono: 'Schibsted Grotesk', system-ui, sans-serif; /* labels: grotesque caps, not code */
-  --font-head: 'Schibsted Grotesk', system-ui, sans-serif;
-  --font-body: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Raleway', 'Schibsted Grotesk', sans-serif; /* the big editorial headlines */
-  --font-lcd: var(--font-display); /* counters use the display face, not a readout font */
+  --font-mono: 'Inter', system-ui, sans-serif; /* labels: clean grotesque caps */
+  --font-head: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif; /* the big elegant headlines */
+  --font-lcd: var(--font-display);
 
-  /* Geometry — square / editorial */
-  --radius: 3px;
-  --radius-sm: 2px;
+  /* Geometry — soft / premium */
+  --radius: 16px;
+  --radius-sm: 10px;
   --gap: 18px;
 
   /* Motion */
@@ -57,19 +58,73 @@ body {
 }
 
 body {
-  background: var(--void);
+  background: var(--obsidian);
   color: var(--text);
   font-family: var(--font-body);
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.6;
   letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Slow drifting aurora behind everything */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -25vmax;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(38vmax 38vmax at 16% 10%, rgba(194, 242, 78, 0.12), transparent 60%),
+    radial-gradient(34vmax 34vmax at 84% 6%, rgba(74, 150, 255, 0.10), transparent 60%),
+    radial-gradient(42vmax 42vmax at 64% 96%, rgba(150, 96, 255, 0.09), transparent 62%);
+  filter: blur(28px);
+  animation: aurora 26s var(--ease) infinite alternate;
+}
+@keyframes aurora {
+  0% { transform: translate3d(-3%, -2%, 0) scale(1) rotate(0deg); }
+  50% { transform: translate3d(3%, 2%, 0) scale(1.1) rotate(6deg); }
+  100% { transform: translate3d(-2%, 3%, 0) scale(1.04) rotate(-4deg); }
+}
+
+/* Fine film grain over the aurora */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
 }
 
 #app {
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Shared motion keyframes ----------------------------------------- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
 }
 
 /* Utility classes */

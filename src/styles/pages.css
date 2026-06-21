@@ -1100,117 +1100,179 @@
 }
 
 /* ============================================================
-   MONOPO EDITORIAL OVERRIDES
-   Later rules win — this block re-skins the dark UI into the
-   light, monochrome, square-cornered editorial system without
-   touching component markup or logic.
+   ORIGIN PREMIUM OVERRIDES
+   Later rules win — dark fintech polish + motion layered on the
+   base components, without touching markup or logic.
    ============================================================ */
 
-/* Step nav → underlined editorial links, not a pill group */
+/* Step nav → animated glowing underline */
 .app-nav {
-  gap: 6px;
+  gap: 4px;
   padding: 0;
   border: 0;
   background: none;
-  border-radius: 0;
 }
 .nav-step {
-  border-radius: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 12px;
-  padding: 6px 8px;
-  border-bottom: 2px solid transparent;
+  position: relative;
+  border-radius: 999px;
+  background: none;
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-size: 13px;
+  padding: 7px 12px;
+}
+.nav-step::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--scan);
+  box-shadow: 0 0 10px var(--glow);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.32s var(--ease);
+}
+.nav-step:hover::after,
+.nav-step--active::after {
+  transform: scaleX(1);
 }
 .nav-step--active {
   color: var(--text);
   background: none;
-  border-bottom-color: var(--text);
 }
 
-/* Big editorial display headlines (Raleway) */
+/* Elegant serif headlines; soft white sheen on the hero */
 .hero-title,
 .stay-title,
 .report-title {
   font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 0.98;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
 }
 .hero-title {
-  font-size: clamp(44px, 8vw, 92px);
-  letter-spacing: -0.045em;
+  font-size: clamp(42px, 7.4vw, 86px);
+  background: linear-gradient(176deg, #ffffff 0%, #eef0ea 42%, #b9bcb4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .eyebrow {
-  color: var(--text);
+  color: var(--scan);
 }
 
-/* Buttons → square, uppercase, ink */
+/* Premium rounded buttons with a shimmer sweep */
 .primary-btn,
-.ghost-btn,
+.search-go,
+.ghost-btn {
+  border-radius: 999px;
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+.primary-btn,
 .search-go {
-  border-radius: var(--radius-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  font-size: 13px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px var(--scan-dim);
 }
-.primary-btn:hover {
-  filter: none;
-  background: #1a1a1a;
+.primary-btn::after,
+.search-go::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 25%, rgba(255, 255, 255, 0.55) 50%, transparent 75%);
+  transform: translateX(-130%);
+  transition: transform 0.65s var(--ease);
+  pointer-events: none;
+}
+.primary-btn:hover::after,
+.search-go:hover::after {
+  transform: translateX(130%);
+}
+.primary-btn:hover,
+.search-go:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 34px var(--glow);
+}
+.ghost-btn:hover {
+  border-color: var(--scan);
+  color: var(--text);
+  box-shadow: 0 0 0 3px var(--scan-dim);
 }
 
-/* Square the remaining pills */
-.chip,
-.kw-chip,
-.connector-add-btn,
-.ratio-bar {
-  border-radius: var(--radius-sm);
-}
-
-/* Suppression counters: display face, ink/grey only */
+/* Counters in the elegant serif */
 .ratio-num,
 .stat-num {
   font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-/* Kill leftover hued accents → monochrome */
-.feed-section-label--dup {
-  color: var(--text-dim);
-}
-.card--dup {
-  border-left-color: var(--text-dim);
-}
-.kw-chip--on {
-  border-color: rgba(0, 0, 0, 0.45);
-}
-.connector-card--on {
-  border-color: rgba(0, 0, 0, 0.4);
-}
-.report-confirm {
-  border-color: rgba(0, 0, 0, 0.2);
-}
-.stat--surfaced {
-  border-color: var(--line);
-}
-
-/* The agent JSON preview stays a deliberate inverted ink block */
+/* Subtle semantic hues — surfaced green / dup blue / off grey */
+.feed-section-label--dup { color: #74a8ff; }
+.card--dup { border-left-color: #74a8ff; }
+.kw-chip--on { border-color: var(--scan); }
+.connector-card--on { border-color: rgba(194, 242, 78, 0.4); }
+.report-confirm { border-color: rgba(194, 242, 78, 0.3); }
+.stat--surfaced { border-color: rgba(194, 242, 78, 0.35); }
 .connector-preview {
-  background: #14110c;
-  color: #f1eee7;
-  border-color: #14110c;
+  background: #0b0c0d;
+  color: #dfe2db;
+  border-color: var(--line-strong);
 }
 
-/* Live dot pulse in ink instead of lime */
-@keyframes live-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.28);
-  }
-  70% {
-    box-shadow: 0 0 0 7px rgba(0, 0, 0, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-  }
+/* Card / tile hover — lift + glow */
+.example-card,
+.stat,
+.channel-card,
+.connector-card,
+.ratio-card {
+  transition: transform 0.22s var(--ease), border-color 0.22s var(--ease), box-shadow 0.22s var(--ease), background 0.22s var(--ease);
 }
+.example-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--scan);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--scan-dim);
+}
+.example-card:hover .example-icon {
+  text-shadow: 0 0 18px var(--glow);
+}
+.stat:hover,
+.channel-card:hover,
+.connector-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+}
+.ratio-card {
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
+}
+
+/* Glowing live dot + green pulse */
+.live-dot {
+  box-shadow: 0 0 12px var(--glow);
+}
+@keyframes live-pulse {
+  0% { box-shadow: 0 0 0 0 var(--scan-dim); }
+  70% { box-shadow: 0 0 0 9px rgba(194, 242, 78, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(194, 242, 78, 0); }
+}
+
+/* Staggered entrance — replays on every page navigation */
+.page--active .eyebrow { animation: fade-up 0.6s var(--ease) both; }
+.page--active .hero-title,
+.page--active .stay-title,
+.page--active .report-title { animation: fade-up 0.7s var(--ease) 0.06s both; }
+.page--active .hero-sub { animation: fade-up 0.7s var(--ease) 0.13s both; }
+.page--active .search-bar { animation: fade-up 0.7s var(--ease) 0.2s both; }
+.page--active .adv-panel { animation: fade-up 0.7s var(--ease) 0.26s both; }
+.page--active .live-strip { animation: fade-up 0.7s var(--ease) 0.1s both; }
+.page--active .ratio-card { animation: fade-up 0.7s var(--ease) 0.16s both; }
+.page--active .stay-stats { animation: fade-up 0.7s var(--ease) 0.24s both; }
+.page--active .examples-wrap { animation: fade-up 0.7s var(--ease) 0.3s both; }
+.page--active .login-box { animation: fade-up 0.7s var(--ease) 0.1s both; }
+.page--active .channel-grid { animation: fade-up 0.7s var(--ease) 0.18s both; }
+.page--active .connectors-list { animation: fade-up 0.7s var(--ease) 0.24s both; }
