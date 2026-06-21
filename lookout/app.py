@@ -14,12 +14,19 @@ from .learning import LearningService
 from .redis_store import RedisStore
 from .schemas import FeedbackCreate, WatchCreate
 from .settings import get_settings
+from .tracing import setup_sentry, setup_tracing
 from .websocket import FeedHub
+
+
+# Sentry first so it captures errors from the entire startup path (backend errors only).
+setup_sentry()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
+    # Register Phoenix tracing + Anthropic instrumentation before any Claude call fires.
+    setup_tracing()
     feed = FeedHub()
     store = RedisStore(settings.redis_url)
     source = SeedEventSource(settings.events_path, settings.event_batch_size)
@@ -110,3 +117,9 @@ async def trigger_pipeline(candidate_id: str) -> dict[str, Any]:
 async def run_scout_once() -> dict[str, Any]:
     results = await engine().poll_once()
     return {"accepted": True, "results": results}
+
+
+@app.get("/api/debug/error")
+def debug_error() -> dict[str, Any]:
+    """Deliberately raise so we can confirm Sentry is wired (backend errors only)."""
+    raise RuntimeError("Lookout Sentry smoke test — intentional backend error.")

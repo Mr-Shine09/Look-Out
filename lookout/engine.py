@@ -13,6 +13,7 @@ from .judge import SpecAndFitJudge, stub_spec_for
 from .learning import LearningService
 from .redis_store import INDEX_NAME, RedisStore, decode, decode_hash, json_dumps, json_loads, tag_escape
 from .settings import Settings
+from .tracing import agent_span, set_span_output
 from .websocket import FeedHub
 
 
@@ -73,8 +74,15 @@ class LookoutEngine:
             results: list[dict[str, Any]] = []
             for event in events:
                 for watch in watches:
-                    result = await self.process_event(watch, event, broadcast=True)
-                    results.append(result)
+                    with agent_span(
+                        "watch.process_event",
+                        span_kind="CHAIN",
+                        input_value=str(event.get("title") or event.get("id") or ""),
+                        attributes={"lookout.watch_id": str(watch.get("id", ""))},
+                    ) as span:
+                        result = await self.process_event(watch, event, broadcast=True)
+                        set_span_output(span, result)
+                        results.append(result)
             return results
 
     async def process_event(
@@ -301,17 +309,32 @@ class LookoutEngine:
 
     async def emit_pipeline(self, cid: str) -> None:
         stages = ["scout", "judge", "strategist", "drafter", "critic"]
-        for stage in stages:
-            await self.feed.broadcast({"type": "pipeline_stage", "stage": stage, "status": "running"})
-            await asyncio.sleep(0.35)
-            await self.feed.broadcast(
-                {
-                    "type": "pipeline_stage",
-                    "stage": stage,
-                    "status": "done",
-                    "output_snippet": pipeline_snippet(stage, cid),
-                }
-            )
+        with agent_span(
+            "act_pipeline",
+            span_kind="CHAIN",
+            input_value=f"candidate={cid}",
+            attributes={"lookout.candidate_id": cid},
+        ) as pipeline_span:
+            for stage in stages:
+                with agent_span(
+                    f"agent.{stage}",
+                    span_kind="AGENT",
+                    input_value=f"candidate={cid}",
+                    attributes={"lookout.stage": stage, "lookout.candidate_id": cid},
+                ) as stage_span:
+                    await self.feed.broadcast({"type": "pipeline_stage", "stage": stage, "status": "running"})
+                    await asyncio.sleep(0.35)
+                    snippet = pipeline_snippet(stage, cid)
+                    set_span_output(stage_span, snippet)
+                    await self.feed.broadcast(
+                        {
+                            "type": "pipeline_stage",
+                            "stage": stage,
+                            "status": "done",
+                            "output_snippet": snippet,
+                        }
+                    )
+            set_span_output(pipeline_span, f"completed {len(stages)} stages for {cid}")
 
     def _store_candidate(
         self,

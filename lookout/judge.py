@@ -23,7 +23,7 @@ DEFAULT_REJECT_CASES = [
 class SpecAndFitJudge:
     def __init__(self, api_key: str | None) -> None:
         self.api_key = api_key
-        self.model = os.getenv("LOOKOUT_ANTHROPIC_MODEL", "claude-3-5-haiku-20241022")
+        self.model = os.getenv("LOOKOUT_ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
 
     async def compile_spec(self, query_text: str) -> dict[str, list[str]]:
         if not self.api_key:
