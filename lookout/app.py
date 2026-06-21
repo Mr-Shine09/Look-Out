@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .embeddings import EmbeddingService
 from .engine import LookoutEngine
 from .event_source import SeedEventSource
+from .scrape_source import ScrapeEventSource
 from .judge import SpecAndFitJudge
 from .learning import LearningService
 from .redis_store import RedisStore
@@ -29,7 +30,23 @@ async def lifespan(app: FastAPI):
     setup_tracing()
     feed = FeedHub()
     store = RedisStore(settings.redis_url)
-    source = SeedEventSource(settings.events_path, settings.event_batch_size)
+    if settings.event_source == "scrape":
+        source = ScrapeEventSource(
+            sources=settings.scrape_sources,
+            cache_path=settings.scrape_cache_path,
+            batch_size=settings.event_batch_size,
+            refresh_seconds=settings.scrape_refresh_seconds,
+            use_browserbase=settings.use_browserbase,
+            bb_api_key=settings.browserbase_api_key,
+            bb_project_id=settings.browserbase_project_id,
+        )
+        print(
+            f"[startup] event source: scrape ({', '.join(settings.scrape_sources)}) "
+            f"browserbase={'on' if settings.use_browserbase else 'off'}"
+        )
+    else:
+        source = SeedEventSource(settings.events_path, settings.event_batch_size)
+        print("[startup] event source: seed")
     embeddings = EmbeddingService(settings.embedding_model)
     judge = SpecAndFitJudge(settings.anthropic_api_key)
     learning = LearningService(store.redis)

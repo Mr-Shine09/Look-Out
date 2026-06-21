@@ -12,3 +12,8 @@ arize-phoenix-otel>=0.6.0
 openinference-instrumentation-anthropic>=0.1.0
 opentelemetry-sdk>=1.25.0
 sentry-sdk[fastapi]>=2.0.0
+
+# Real event scraping (Luma): direct fetch + optional Browserbase transport
+requests>=2.31.0,<3.0.0
+browserbase>=1.13.0,<2.0.0
+playwright>=1.40.0,<2.0.0
