@@ -82,26 +82,20 @@ body {
   overflow-x: hidden;
 }
 
-/* Soft watercolor blooms slowly breathing behind everything */
+/* Faint static wash base — the animated watercolor orbs (canvas, z-index -2,
+   mounted in lib/backdrop.js) drift on top of this for the lively motion. */
 body::before {
   content: '';
   position: fixed;
   inset: -25vmax;
-  z-index: -2;
+  z-index: -3;
   pointer-events: none;
   background:
-    radial-gradient(40vmax 36vmax at 12% 8%, rgba(171, 211, 245, 0.55), transparent 60%),
-    radial-gradient(34vmax 32vmax at 88% 4%, rgba(248, 185, 196, 0.48), transparent 62%),
-    radial-gradient(38vmax 38vmax at 80% 92%, rgba(201, 184, 240, 0.45), transparent 62%),
-    radial-gradient(36vmax 34vmax at 20% 96%, rgba(168, 224, 201, 0.42), transparent 62%),
-    radial-gradient(30vmax 30vmax at 50% 48%, rgba(251, 211, 166, 0.30), transparent 65%);
+    radial-gradient(40vmax 36vmax at 12% 8%, rgba(171, 211, 245, 0.22), transparent 60%),
+    radial-gradient(34vmax 32vmax at 88% 4%, rgba(248, 185, 196, 0.20), transparent 62%),
+    radial-gradient(38vmax 38vmax at 80% 92%, rgba(201, 184, 240, 0.18), transparent 62%),
+    radial-gradient(36vmax 34vmax at 20% 96%, rgba(168, 224, 201, 0.18), transparent 62%);
   filter: blur(44px) saturate(1.05);
-  animation: bloom 32s var(--ease) infinite alternate;
-}
-@keyframes bloom {
-  0% { transform: translate3d(-2%, -1%, 0) scale(1) rotate(0deg); }
-  50% { transform: translate3d(2%, 2%, 0) scale(1.08) rotate(4deg); }
-  100% { transform: translate3d(-1%, 2%, 0) scale(1.03) rotate(-3deg); }
 }
 
 /* Fine paper tooth over the washes */

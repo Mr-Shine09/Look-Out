@@ -5,6 +5,7 @@ import './styles/pages.css';
 import { el } from './lib/dom.js';
 import { createApi } from './api/index.js';
 import { createRouter } from './lib/router.js';
+import { mountBackdrop } from './lib/backdrop.js';
 import { Header } from './components/header.js';
 import { SearchPage } from './components/searchPage.js';
 import { StayPage } from './components/stayPage.js';
@@ -163,6 +164,7 @@ function registerReveals() {
 }
 
 // ---- Bootstrap ---------------------------------------------------------
+mountBackdrop();
 router.start();
 api.start();
 registerReveals();
