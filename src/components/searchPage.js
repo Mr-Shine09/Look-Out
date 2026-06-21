@@ -324,10 +324,10 @@ export function SearchPage({ onFollow }) {
   const node = el('section', { class: 'page page-search', hidden: true }, [
     el('div', { class: 'search-hero' }, [
       el('p', { class: 'eyebrow', text: 'Search' }),
-      el('h1', { class: 'hero-title head', text: 'Get alerted only when it matters.' }),
+      el('h1', { class: 'hero-title head', text: 'Watches everything. Pings you only when it matters.' }),
       el('p', {
         class: 'hero-sub',
-        text: 'Tell Lookout what to watch. It filters duplicates, stale updates, and off-topic noise — then notifies you only when something new, relevant, and worth acting on appears.',
+        text: 'Lookout is a suppression engine, not another watcher. It remembers what it has already shown you, so reworded duplicates and stale noise collapse into silence — and you only hear from it when something is genuinely new and worth acting on.',
       }),
       el('div', { class: 'search-bar' }, [input, submit]),
       el('div', { class: 'adv-panel' }, [advancedToggle, advancedBody]),
