@@ -127,8 +127,10 @@ api.subscribe((msg) => {
     case 'pipeline_stage':
       stay.handlePipeline(msg);
       break;
-    case 'spec_ready':
     case 'curve_update':
+      stay.handleCurve(msg);
+      break;
+    case 'spec_ready':
       break;
     default:
       break;

@@ -1,6 +1,7 @@
 import { el, clear } from '../lib/dom.js';
 import { CandidateCard } from './candidateCard.js';
 import { Pipeline } from './pipeline.js';
+import { PrecisionCurve } from './precisionCurve.js';
 
 /**
  * STAY — one purpose: show that Lookout is watching, and staying quiet.
@@ -14,21 +15,51 @@ import { Pipeline } from './pipeline.js';
  */
 export function StayPage({ api, onReport }) {
   const pipeline = Pipeline();
+  pipeline.node.hidden = true; // on-demand: only appears once the user hits "act"
+  const curve = PrecisionCurve();
   let scope = { watchId: null, title: 'your watch' };
   const records = new Map(); // cid -> candidate
+  let lastCheckedAt = Date.now();
 
   const handlers = {
     onFeedback: (candId, label, watchId) => api.sendFeedback(candId, label, watchId || scope.watchId),
     onAct: (candId) => {
       pipeline.reset();
+      pipeline.node.hidden = false;
       api.triggerPipeline(candId);
       pipeline.node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     },
   };
 
-  // ---- Header / stats ----------------------------------------------------
+  // ---- Header / topic ----------------------------------------------------
   const topicEl = el('span', { class: 'stay-topic', text: scope.title });
-  const surfacedNum = el('span', { class: 'stat-num', text: '0' });
+
+  // ---- Liveness strip ----------------------------------------------------
+  const liveDot = el('span', { class: 'live-dot' });
+  const liveCheckedEl = el('span', { class: 'live-checked', text: 'just now' });
+  const liveSourcesEl = el('span', { class: 'live-sources', text: 'Luma · Devpost · MLH · Eventbrite' });
+
+  function sourcesSeen() {
+    const set = new Set();
+    for (const c of records.values()) if (c.source) set.add(c.source);
+    return set.size ? [...set].join(' · ') : 'Luma · Devpost · MLH · Eventbrite';
+  }
+  function refreshLiveness() {
+    const secs = Math.max(0, Math.round((Date.now() - lastCheckedAt) / 1000));
+    liveCheckedEl.textContent = secs < 2 ? 'just now' : `${secs}s ago`;
+    liveSourcesEl.textContent = sourcesSeen();
+  }
+  setInterval(refreshLiveness, 1000);
+
+  // ---- Headline ratio ----------------------------------------------------
+  const surfacedBig = el('span', { class: 'ratio-num ratio-num--surfaced', text: '0' });
+  const silencedBig = el('span', { class: 'ratio-num ratio-num--silenced', text: '0' });
+  const barSurfaced = el('span', { class: 'ratio-seg ratio-seg--surfaced' });
+  const barSilenced = el('span', { class: 'ratio-seg ratio-seg--silenced' });
+  const ratioBar = el('div', { class: 'ratio-bar' }, [barSurfaced, barSilenced]);
+  const ratioSub = el('p', { class: 'ratio-sub', text: 'Watching quietly — nothing seen yet.' });
+
+  // ---- Secondary stat tiles ----------------------------------------------
   const dupNum = el('span', { class: 'stat-num', text: '0' });
   const offNum = el('span', { class: 'stat-num', text: '0' });
   const seenNum = el('span', { class: 'stat-num', text: '0' });
@@ -49,7 +80,7 @@ export function StayPage({ api, onReport }) {
     return 'offtopic';
   }
 
-  function updateStats() {
+  function counts() {
     let surfaced = 0;
     let dup = 0;
     let off = 0;
@@ -59,10 +90,43 @@ export function StayPage({ api, onReport }) {
       else if (k === 'duplicate') dup += 1;
       else off += 1;
     }
-    surfacedNum.textContent = String(surfaced);
+    return { surfaced, dup, off, silenced: dup + off, seen: records.size };
+  }
+
+  function updateStats() {
+    const { surfaced, dup, off, silenced, seen } = counts();
+    surfacedBig.textContent = String(surfaced);
+    silencedBig.textContent = String(silenced);
     dupNum.textContent = String(dup);
     offNum.textContent = String(off);
-    seenNum.textContent = String(records.size);
+    seenNum.textContent = String(seen);
+
+    const total = surfaced + silenced;
+    const sPct = total ? Math.round((surfaced / total) * 100) : 0;
+    barSurfaced.style.flex = String(surfaced);
+    barSilenced.style.flex = String(silenced);
+    ratioBar.classList.toggle('ratio-bar--empty', total === 0);
+
+    if (!seen) {
+      ratioSub.textContent = 'Watching quietly — nothing seen yet.';
+    } else {
+      ratioSub.textContent = `Out of ${seen} update${seen === 1 ? '' : 's'} seen, Lookout interrupted you ${
+        surfaced === 0 ? 'zero times' : `${sPct}% of the time`
+      } — the rest stayed silent.`;
+    }
+  }
+
+  // ---- Section renderer --------------------------------------------------
+  function appendSection(items, { label, variant, silenced }) {
+    if (!items.length) return;
+    feed.append(el('p', { class: `feed-section-label feed-section-label--${variant}`, text: `${label} (${items.length})` }));
+    items
+      .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))
+      .forEach((c) => {
+        const card = CandidateCard(c, handlers);
+        if (silenced) card.classList.add('card--silenced', `card--${variant}`);
+        feed.append(card);
+      });
   }
 
   function render() {
@@ -70,9 +134,10 @@ export function StayPage({ api, onReport }) {
     clear(feed);
     const all = [...records.values()];
     const surfaced = all.filter((c) => classify(c) === 'surfaced');
-    const silenced = all.filter((c) => classify(c) !== 'surfaced');
+    const duplicates = all.filter((c) => classify(c) === 'duplicate');
+    const offtopic = all.filter((c) => classify(c) === 'offtopic');
 
-    if (!surfaced.length && !silenced.length) {
+    if (!all.length) {
       feed.append(
         el('div', { class: 'stay-empty' }, [
           el('span', { class: 'radar' }),
@@ -83,10 +148,7 @@ export function StayPage({ api, onReport }) {
     }
 
     if (surfaced.length) {
-      feed.append(el('p', { class: 'feed-section-label', text: `Surfaced — worth your attention (${surfaced.length})` }));
-      surfaced
-        .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))
-        .forEach((c) => feed.append(CandidateCard(c, handlers)));
+      appendSection(surfaced, { label: 'Surfaced — worth your attention', variant: 'surfaced' });
     } else {
       feed.append(
         el('div', { class: 'stay-empty' }, [
@@ -96,15 +158,9 @@ export function StayPage({ api, onReport }) {
       );
     }
 
-    if (showSilenced && silenced.length) {
-      feed.append(el('p', { class: 'feed-section-label faint', text: `Silenced — duplicates & off-topic (${silenced.length})` }));
-      silenced
-        .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)))
-        .forEach((c) => {
-          const card = CandidateCard(c, handlers);
-          card.classList.add('card--silenced');
-          feed.append(card);
-        });
+    if (showSilenced) {
+      appendSection(duplicates, { label: 'Silenced — semantic duplicates', variant: 'dup', silenced: true });
+      appendSection(offtopic, { label: 'Silenced — off-topic', variant: 'off', silenced: true });
     }
   }
 
@@ -112,6 +168,16 @@ export function StayPage({ api, onReport }) {
   function ingest(cand) {
     if (scope.watchId && cand.watch_id && cand.watch_id !== scope.watchId) return;
     records.set(cand.id, cand);
+    lastCheckedAt = Date.now();
+  }
+
+  async function loadCurve() {
+    try {
+      const pts = await api.getCurve?.();
+      if (Array.isArray(pts)) curve.setPoints(pts);
+    } catch (err) {
+      console.warn('[stay] curve load failed', err);
+    }
   }
 
   async function show(next = {}) {
@@ -119,6 +185,9 @@ export function StayPage({ api, onReport }) {
     topicEl.textContent = scope.title;
     records.clear();
     pipeline.reset();
+    pipeline.node.hidden = true;
+    lastCheckedAt = Date.now();
+    refreshLiveness();
     render();
     try {
       const existing = await api.getCandidates?.(scope.watchId);
@@ -127,6 +196,7 @@ export function StayPage({ api, onReport }) {
       console.warn('[stay] load failed', err);
     }
     render();
+    loadCurve();
   }
 
   function handleCandidate(msg) {
@@ -136,6 +206,10 @@ export function StayPage({ api, onReport }) {
 
   function handlePipeline(msg) {
     pipeline.update(msg);
+  }
+
+  function handleCurve(msg) {
+    curve.addPoint({ timestamp: msg.timestamp, false_alarm_rate: msg.false_alarm_rate });
   }
 
   const node = el('section', { class: 'page page-stay', hidden: true }, [
@@ -149,15 +223,31 @@ export function StayPage({ api, onReport }) {
         el('button', { class: 'primary-btn', type: 'button', onClick: () => onReport?.(scope) }, ['Get these delivered →']),
       ]),
     ]),
+    el('div', { class: 'live-strip' }, [
+      liveDot,
+      el('span', { class: 'live-label', text: 'Live · last checked ' }),
+      liveCheckedEl,
+      el('span', { class: 'live-sep', text: ' · scanning ' }),
+      liveSourcesEl,
+    ]),
+    el('div', { class: 'ratio-card' }, [
+      el('div', { class: 'ratio-head' }, [
+        el('div', { class: 'ratio-stat' }, [surfacedBig, el('span', { class: 'ratio-cap', text: 'surfaced to you' })]),
+        el('span', { class: 'ratio-dot', text: '·' }),
+        el('div', { class: 'ratio-stat' }, [silencedBig, el('span', { class: 'ratio-cap', text: 'silenced for you' })]),
+      ]),
+      ratioBar,
+      ratioSub,
+    ]),
     el('div', { class: 'stay-stats' }, [
-      el('div', { class: 'stat stat--surfaced' }, [surfacedNum, el('span', { class: 'stat-label', text: 'surfaced to you' })]),
       el('div', { class: 'stat stat--dup' }, [dupNum, el('span', { class: 'stat-label', text: 'duplicates silenced' })]),
       el('div', { class: 'stat stat--off' }, [offNum, el('span', { class: 'stat-label', text: 'off-topic filtered' })]),
       el('div', { class: 'stat stat--seen' }, [seenNum, el('span', { class: 'stat-label', text: 'total updates seen' })]),
     ]),
     feed,
+    curve.node,
     pipeline.node,
   ]);
 
-  return { node, key: 'stay', onShow: () => {}, show, handleCandidate, handlePipeline };
+  return { node, key: 'stay', onShow: () => {}, show, handleCandidate, handlePipeline, handleCurve };
 }
