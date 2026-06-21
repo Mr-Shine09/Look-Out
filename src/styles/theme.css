@@ -1,44 +1,44 @@
-/* Lookout design system — "monochrome instrument with editorial confidence".
-   Synthesis of two references:
-     • Analogue (dark agency): Ink #000 + Graphite #1c1c1c, LCD dot-matrix accent.
-     • monopo saigon (editorial): big geometric-grotesque headings, high contrast.
-   Base = pure-black graphite instrument; headings = Space Grotesk; technical
-   labels = JetBrains Mono; the live suppression counter = DotGothic16 (LCD).
-   Lime stays as the single brand accent; semantic colors are kept for content.
+/* Lookout design system — editorial monochrome, copied from monopo saigon.
+   Paper White #ffffff + Ink Black #000000, near-zero color, big geometric
+   grotesque display type (Schibsted Grotesk ≈ Roobert) with Raleway for the
+   largest headlines, generous whitespace, crisp hairlines and square corners.
+   Hierarchy comes from weight / fills / scale, not hue — so the suppression
+   story reads through black-vs-grey instead of green/amber.
    Reused across every component so the dashboard reads as one product. */
 
 :root {
-  /* Core palette — Analogue ink + graphite */
-  --void: #000000; /* true-black background */
-  --void-2: #0a0a0a; /* raised surface */
-  --panel: #131313; /* card / panel surface (graphite) */
-  --panel-2: #1c1c1c; /* hover / nested surface (Analogue graphite) */
-  --line: #232323; /* hairline borders */
-  --line-strong: #2e2e2e;
+  /* Core palette — paper + ink */
+  --void: #ffffff; /* paper-white background */
+  --void-2: #f4f2ec; /* raised surface / input fill (warm paper) */
+  --panel: #ffffff; /* card / panel surface */
+  --panel-2: #f1eee7; /* hover / nested surface */
+  --line: #e4e0d6; /* hairline borders */
+  --line-strong: #14110c; /* emphatic ink rule */
 
-  /* Accents */
-  --scan: #c5ff4a; /* lime — the single brand accent (watching / active) */
-  --scan-dim: rgba(197, 255, 74, 0.14);
-  --signal: #ffa94a; /* amber — real match */
-  --signal-dim: rgba(255, 169, 74, 0.14);
-  --reject: #7a7a8a; /* muted grey — rejected */
-  --reject-dim: rgba(122, 122, 138, 0.12);
-  --danger: #f4706b;
+  /* Accents — monochrome. "scan/signal" = ink black; greys carry the rest. */
+  --scan: #000000; /* ink — brand / active / watching */
+  --scan-dim: rgba(0, 0, 0, 0.06);
+  --signal: #000000; /* ink — real match (surfaced) */
+  --signal-dim: rgba(0, 0, 0, 0.06);
+  --reject: #a39e92; /* warm grey — rejected / silenced */
+  --reject-dim: rgba(0, 0, 0, 0.04);
+  --danger: #c0291b;
 
   /* Text */
-  --text: #ffffff;
-  --text-dim: #c5c5c5;
-  --text-faint: #7a7a8a;
+  --text: #000000;
+  --text-dim: #46423a;
+  --text-faint: #918b7d;
 
   /* Typography */
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --font-head: 'Space Grotesk', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-lcd: 'DotGothic16', 'JetBrains Mono', monospace; /* LCD dot-matrix readout */
+  --font-mono: 'Schibsted Grotesk', system-ui, sans-serif; /* labels: grotesque caps, not code */
+  --font-head: 'Schibsted Grotesk', system-ui, sans-serif;
+  --font-body: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Raleway', 'Schibsted Grotesk', sans-serif; /* the big editorial headlines */
+  --font-lcd: var(--font-display); /* counters use the display face, not a readout font */
 
-  /* Geometry — tightened for a precise, instrument feel */
-  --radius: 14px;
-  --radius-sm: 10px;
+  /* Geometry — square / editorial */
+  --radius: 3px;
+  --radius-sm: 2px;
   --gap: 18px;
 
   /* Motion */
@@ -57,15 +57,12 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(820px 480px at 78% -14%, rgba(197, 255, 74, 0.07), transparent 58%),
-    radial-gradient(680px 420px at 2% 6%, rgba(255, 255, 255, 0.035), transparent 56%),
-    linear-gradient(180deg, #0a0a0a 0%, var(--void) 42%);
+  background: var(--void);
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 1.5;
-  letter-spacing: -0.01em;
+  font-size: 15px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -84,8 +81,7 @@ body {
   letter-spacing: -0.03em;
 }
 .lcd {
-  font-family: var(--font-lcd);
-  letter-spacing: 0.01em;
+  font-family: var(--font-display);
   font-feature-settings: 'tnum' 1;
 }
 .dim {

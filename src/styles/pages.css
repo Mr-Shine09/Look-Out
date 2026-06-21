@@ -1098,3 +1098,119 @@
     justify-content: center;
   }
 }
+
+/* ============================================================
+   MONOPO EDITORIAL OVERRIDES
+   Later rules win — this block re-skins the dark UI into the
+   light, monochrome, square-cornered editorial system without
+   touching component markup or logic.
+   ============================================================ */
+
+/* Step nav → underlined editorial links, not a pill group */
+.app-nav {
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 0;
+}
+.nav-step {
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-bottom: 2px solid transparent;
+}
+.nav-step--active {
+  color: var(--text);
+  background: none;
+  border-bottom-color: var(--text);
+}
+
+/* Big editorial display headlines (Raleway) */
+.hero-title,
+.stay-title,
+.report-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+}
+.hero-title {
+  font-size: clamp(44px, 8vw, 92px);
+  letter-spacing: -0.045em;
+}
+.eyebrow {
+  color: var(--text);
+}
+
+/* Buttons → square, uppercase, ink */
+.primary-btn,
+.ghost-btn,
+.search-go {
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 13px;
+}
+.primary-btn:hover {
+  filter: none;
+  background: #1a1a1a;
+}
+
+/* Square the remaining pills */
+.chip,
+.kw-chip,
+.connector-add-btn,
+.ratio-bar {
+  border-radius: var(--radius-sm);
+}
+
+/* Suppression counters: display face, ink/grey only */
+.ratio-num,
+.stat-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Kill leftover hued accents → monochrome */
+.feed-section-label--dup {
+  color: var(--text-dim);
+}
+.card--dup {
+  border-left-color: var(--text-dim);
+}
+.kw-chip--on {
+  border-color: rgba(0, 0, 0, 0.45);
+}
+.connector-card--on {
+  border-color: rgba(0, 0, 0, 0.4);
+}
+.report-confirm {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+.stat--surfaced {
+  border-color: var(--line);
+}
+
+/* The agent JSON preview stays a deliberate inverted ink block */
+.connector-preview {
+  background: #14110c;
+  color: #f1eee7;
+  border-color: #14110c;
+}
+
+/* Live dot pulse in ink instead of lime */
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.28);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(0, 0, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}

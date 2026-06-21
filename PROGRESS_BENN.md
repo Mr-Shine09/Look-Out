@@ -82,6 +82,16 @@ Owner: Benn (frontend/UX). Friend "Oak" owns backend (has a Netlify deploy).
 - **2026-06-21** — searchSpec→backend (`ec30e22`): `createWatch(queryText, spec?)` now sends
   `search_spec` alongside `query_text` (real + mock parity; additive so backend can ignore it).
   Documented the spec shape in INTEGRATION.md for Oak.
+- **2026-06-21** — FULL REDESIGN to monopo saigon (light editorial): Benn changed direction —
+  copy ONLY the monopo saigon ref (Paper White #fff / Ink Black #000, Roobert + Raleway, big
+  display type, whitespace, square corners, near-monochrome). Flipped `theme.css` tokens to a light
+  paper/ink monochrome system (cascades through all var()-based components), fonts → **Schibsted
+  Grotesk** (≈ Roobert) + **Raleway** (display headlines); fixed hardcoded dark surfaces in
+  `main.css` (header/status-pill/panel/card/pipeline), added a "MONOPO EDITORIAL OVERRIDES" block at
+  the end of `pages.css` (underlined nav, huge Raleway hero, square pills, removed lime/amber/blue →
+  ink/grey, inverted ink JSON block), and recolored the precision-curve gradient to ink. Suppression
+  hierarchy now reads via black-vs-grey + fills instead of hue. Core tech/functions untouched.
+  NOTE: this supersedes the earlier Analogue-leaning polish below.
 - **2026-06-21** — Visual polish (`0c362f7`): combined two refero refs Benn picked —
   **Analogue** (dark agency: ink/graphite + LCDDot) and **monopo saigon** (editorial grotesque).
   Synthesis = "monochrome instrument with editorial confidence": true-black + graphite surfaces,
