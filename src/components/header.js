@@ -3,11 +3,11 @@ import { el } from '../lib/dom.js';
 const STEPS = [
   { key: 'search', label: 'Search' },
   { key: 'stay', label: 'Stay' },
-  { key: 'report', label: 'Report' },
+  { key: 'report', label: 'Notify' },
 ];
 
 /**
- * Top bar: brand + the three-step nav (Search · Stay · Report). The active
+ * Top bar: brand + the three-step nav (Search · Stay · Notify). The active
  * step is highlighted; setActive(key) keeps it in sync with the router.
  */
 export function Header({ onNavigate } = {}) {

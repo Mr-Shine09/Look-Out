@@ -351,7 +351,7 @@ export function ReportPage({ api, onBack }) {
 
   const node = el('section', { class: 'page page-report', hidden: true }, [
     el('div', { class: 'report-head' }, [
-      el('p', { class: 'eyebrow', text: 'Report' }),
+      el('p', { class: 'eyebrow', text: 'Notify' }),
       el('h1', { class: 'report-title head' }, ['How should we reach you about ', topicEl, '?']),
       el('p', {
         class: 'hero-sub',

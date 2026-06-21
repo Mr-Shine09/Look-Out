@@ -45,3 +45,7 @@ data/scraped_events.json
 
 data/devpost_events.json
 data/searched_events.json
+
+# internal working notes (kept local, not on GitHub)
+PROGRESS-OAK.md
+PROGRESS_BENN.md

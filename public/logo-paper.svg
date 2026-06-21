@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" role="img" aria-label="Lookout">
+  <title>Lookout</title>
+  <!-- Tile variant: brush eye on Anthropic ivory square (slides / social) -->
+  <rect x="0" y="0" width="200" height="200" rx="32" fill="#F0EEE6" />
+  <g fill="#141413" fill-rule="evenodd">
+    <path d="M20 100 C60 63 140 66 180 100 C138 80 62 79 20 100 Z" />
+    <path d="M20 100 C62 137 138 139 180 100 C136 123 64 124 20 100 Z" />
+    <path d="M20 100 C14 102 9 104 4 107 C10 105 15 103 20 100 Z" />
+    <path d="M180 100 C186 98 191 96 196 93 C191 97 186 99 180 100 Z" />
+    <path d="M71 99 A29 24 0 1 0 129 99 A29 24 0 1 0 71 99 Z
+             M84 100 A18 18 0 1 0 120 100 A18 18 0 1 0 84 100 Z" />
+    <path d="M92 99 A8 8 0 1 0 108 99 A8 8 0 1 0 92 99 Z
+             M93.8 95 A2.2 2.2 0 1 0 98.2 95 A2.2 2.2 0 1 0 93.8 95 Z" />
+  </g>
+</svg>
