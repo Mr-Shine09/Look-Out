@@ -72,10 +72,14 @@ export function createMockApi() {
     const w = live[Math.floor(Math.random() * live.length)];
     const template = queues[w.id].shift();
 
-    // ~1 in 6 accepted candidates arrives as a "changed" re-surface, mirroring
-    // the backend's HASH-diff dedup (status closed -> open, etc.).
+    // Semantic duplicates (same event, different source) are SUPPRESSED — the
+    // backend collapses these via RediSearch vector KNN. Mark them so the Stay
+    // page can count them as "duplicates silenced" instead of surfacing twice.
+    const isDuplicate = Boolean(template.dupGroup);
+    // ~1 in 6 non-duplicate accepted candidates arrives as a "changed" re-surface,
+    // mirroring the backend's HASH-diff dedup (status closed -> open, etc.).
     const isChanged =
-      template.judgment === 'accepted' && Math.random() < 0.16 && !template.dupGroup;
+      template.judgment === 'accepted' && Math.random() < 0.16 && !isDuplicate;
 
     const cand = {
       id: nextCid(),
@@ -90,13 +94,13 @@ export function createMockApi() {
       reason: template.reason,
       reasoning: template.reasoning,
       criteria: template.criteria || [],
-      state: isChanged ? 'changed' : 'new',
+      state: isDuplicate ? 'duplicate' : isChanged ? 'changed' : 'new',
       label: null,
       timestamp: nowIso(),
     };
     candidates.set(cand.id, cand);
 
-    if (cand.judgment === 'accepted') session.surfacedAccepted += 1;
+    if (cand.judgment === 'accepted' && cand.state !== 'duplicate') session.surfacedAccepted += 1;
 
     bus.emit({
       type: 'candidate',
@@ -128,10 +132,18 @@ export function createMockApi() {
     }));
   }
 
-  async function createWatch(queryText) {
+  async function createWatch(queryText, searchSpec) {
     await tick(150); // 202 Accepted
     const id = `w_${Date.now().toString(36)}`;
-    const watch = { id, query_text: queryText, status: 'compiling', spec: { must_match: [], reject_cases: [] } };
+    // `searchSpec` mirrors the real backend's `search_spec` param; stored for
+    // parity/debugging even though the stub spec is derived from query text.
+    const watch = {
+      id,
+      query_text: queryText,
+      search_spec: searchSpec || null,
+      status: 'compiling',
+      spec: { must_match: [], reject_cases: [] },
+    };
     watches.push(watch);
     queues[id] = [];
 

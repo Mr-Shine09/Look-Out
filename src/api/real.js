@@ -63,10 +63,14 @@ export function createRealApi(baseUrl = '') {
       return asArray(await request('/api/watches')).map(normalizeWatch);
     },
 
-    async createWatch(queryText) {
+    async createWatch(queryText, spec) {
+      // `query_text` stays the canonical input (mock/real parity). When the
+      // Search page supplies a structured spec, send it alongside as
+      // `search_spec` — additive, so a backend that ignores it still works.
+      const body = spec ? { query_text: queryText, search_spec: spec } : { query_text: queryText };
       return normalizeCreateWatch(await request('/api/watches', {
         method: 'POST',
-        body: JSON.stringify({ query_text: queryText }),
+        body: JSON.stringify(body),
       }));
     },
 
