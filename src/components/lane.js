@@ -78,7 +78,7 @@ export function Lane(watch, handlers = {}) {
           record.node.dataset.feedback = label;
           renderCards();
         }
-        return handlers.onFeedback?.(candId, label);
+        return handlers.onFeedback?.(candId, label, watch.id);
       },
     };
   }

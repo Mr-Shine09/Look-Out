@@ -240,6 +240,27 @@ class LookoutEngine:
                 "reject_cases": spec["reject_cases"],
             }
         )
+        # BUG-3 fix: evaluate the known event pool against the brand-new watch so its
+        # lane fills immediately instead of waiting for the global cursor to come around.
+        await self.backfill_watch(watch_id)
+
+    async def backfill_watch(self, watch_id: str, limit: int = 40) -> None:
+        watch = self.get_watch(watch_id)
+        if not watch or watch["status"] != "watching":
+            return
+        snapshot = getattr(self.source, "snapshot", None)
+        if not callable(snapshot):
+            return
+        try:
+            events = await asyncio.to_thread(snapshot)
+        except Exception as exc:  # never let backfill crash watch creation
+            print(f"[backfill] snapshot failed: {exc!r}")
+            return
+        for event in events[:limit]:
+            try:
+                await self.process_event(watch, event, broadcast=True)
+            except Exception as exc:
+                print(f"[backfill] {watch_id} event failed: {exc!r}")
 
     def get_watches(self) -> list[dict[str, Any]]:
         watches: list[dict[str, Any]] = []
@@ -265,24 +286,54 @@ class LookoutEngine:
             "threshold": float(raw.get("threshold") or 0.5),
         }
 
-    async def feedback(self, cid: str, label: str) -> dict[str, Any]:
-        key, cand = self.find_candidate(cid)
+    async def feedback(self, cid: str, label: str, watch_id: str | None = None) -> dict[str, Any]:
+        key: str | None = None
+        cand: dict[str, Any] | None = None
+        # BUG-1 fix: when the caller knows the watch, target that exact candidate so
+        # feedback never lands on a same-id copy under a different watch.
+        if watch_id:
+            candidate_key = self.candidate_key(watch_id, cid)
+            found = decode_hash(self.redis.hgetall(candidate_key))
+            if found:
+                key, cand = candidate_key, found
+        if not cand:
+            key, cand = self.find_candidate(cid)
         if not key or not cand:
             raise KeyError(cid)
         watch_id = str(cand["watch_id"])
         self.redis.hset(key, mapping={"label": label})
         training = self.learning.train_if_ready(watch_id)
         point = self.recompute_curve(watch_id)
-        await self.feed.broadcast({"type": "curve_update", **point})
+        await self.feed.broadcast({"type": "curve_update", "watch_id": watch_id, **point})
         return {"ok": True, "training": training, "curve": point}
 
     def find_candidate(self, cid: str) -> tuple[str | None, dict[str, Any] | None]:
+        # Prefer the accepted, non-duplicate copy (the one that drives the curve) when the
+        # same event id exists under multiple watches; otherwise fall back to the first match.
+        fallback: tuple[str | None, dict[str, Any] | None] = (None, None)
         for key in self.redis.scan_iter(match=f"cand:*:{cid}"):
             raw_key = decode(key)
             cand = decode_hash(self.redis.hgetall(key))
-            if cand:
+            if not cand:
+                continue
+            if cand.get("judgment") == "accepted" and cand.get("state") != "duplicate":
                 return raw_key, cand
-        return None, None
+            if fallback[0] is None:
+                fallback = (raw_key, cand)
+        return fallback
+
+    def list_candidates(self, watch_id: str | None = None) -> list[dict[str, Any]]:
+        # BUG-2 fix: REST backfill so a page refresh rehydrates the board instead of
+        # losing every candidate that only arrived over the WebSocket.
+        pattern = self.candidate_key(watch_id, "*") if watch_id else "cand:*:*"
+        items: list[dict[str, Any]] = []
+        for key in self.redis.scan_iter(match=pattern):
+            parts = decode(key).split(":", 2)
+            if len(parts) < 3:
+                continue
+            items.append(self._candidate_payload(parts[1], parts[2]))
+        items.sort(key=lambda item: str(item.get("timestamp") or ""))
+        return items
 
     def recompute_curve(self, watch_id: str) -> dict[str, Any]:
         accepted = 0
@@ -297,17 +348,48 @@ class LookoutEngine:
         rate = ((SEED_FALSE_ALARM * 3.0) + false_alarms) / (3.0 + accepted)
         return self._append_curve(watch_id, max(0.0, min(1.0, rate)))
 
-    def get_curve(self) -> list[dict[str, Any]]:
+    def get_curve(self, watch_id: str | None = None) -> list[dict[str, Any]]:
+        # BUG-1 fix: return a single watch's series (default = most-accepted "primary"
+        # watch) so the precision curve is coherent and falls cleanly on screen.
+        target = watch_id or self._primary_watch_id()
+        if target:
+            return self._curve_points(self.metrics_key(target))
         points: list[dict[str, Any]] = []
         for key in self.redis.scan_iter(match="watch:*:metrics"):
-            for member in self.redis.zrange(key, 0, -1):
-                point = json_loads(member, None)
-                if point:
-                    points.append(point)
+            points.extend(self._curve_points(decode(key)))
         points.sort(key=lambda item: item["timestamp"])
         return points
 
+    def _curve_points(self, metrics_key: str) -> list[dict[str, Any]]:
+        points: list[dict[str, Any]] = []
+        for member in self.redis.zrange(metrics_key, 0, -1):
+            point = json_loads(member, None)
+            if point:
+                points.append(point)
+        points.sort(key=lambda item: item["timestamp"])
+        return points
+
+    def _primary_watch_id(self) -> str | None:
+        best_id: str | None = None
+        best_score = (-1, -1)  # (accepted, total) — most-active watch wins
+        for watch in self.get_watches():
+            wid = watch["id"]
+            accepted = total = 0
+            for key in self.redis.scan_iter(match=f"cand:{wid}:*"):
+                cand = decode_hash(self.redis.hgetall(key))
+                total += 1
+                if cand.get("judgment") == "accepted" and cand.get("state") != "duplicate":
+                    accepted += 1
+            score = (accepted, total)
+            if score > best_score:
+                best_score = score
+                best_id = wid
+        return best_id
+
     async def emit_pipeline(self, cid: str) -> None:
+        _, cand = self.find_candidate(cid)
+        cand = cand or {}
+        watch = self.get_watch(str(cand.get("watch_id"))) if cand.get("watch_id") else None
         stages = ["scout", "judge", "strategist", "drafter", "critic"]
         with agent_span(
             "act_pipeline",
@@ -324,7 +406,7 @@ class LookoutEngine:
                 ) as stage_span:
                     await self.feed.broadcast({"type": "pipeline_stage", "stage": stage, "status": "running"})
                     await asyncio.sleep(0.35)
-                    snippet = pipeline_snippet(stage, cid)
+                    snippet = pipeline_snippet(stage, cid, cand, watch)
                     set_span_output(stage_span, snippet)
                     await self.feed.broadcast(
                         {
@@ -464,12 +546,24 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def pipeline_snippet(stage: str, cid: str) -> str:
+def pipeline_snippet(
+    stage: str,
+    cid: str,
+    cand: dict[str, Any] | None = None,
+    watch: dict[str, Any] | None = None,
+) -> str:
+    cand = cand or {}
+    title = cand.get("title") or cid
+    source = cand.get("source") or "source"
+    location = cand.get("location") or "—"
+    starts_at = cand.get("starts_at") or "soon"
+    must = (watch or {}).get("spec", {}).get("must_match", []) if watch else []
+    must_txt = "; ".join(must[:2]) if must else "the compiled watch spec"
     snippets = {
-        "scout": f"Loaded candidate {cid} from Redis memory.",
-        "judge": "Compared candidate against the compiled watch spec and learned relevance bar.",
-        "strategist": "Prioritized the opportunity because it is fresh, local, and time-sensitive.",
-        "drafter": "Prepared a concise outreach/application angle for the user.",
-        "critic": "Checked the draft against the original spec and removed unsupported claims.",
+        "scout": f'Loaded "{title}" ({source}) from Redis memory.',
+        "judge": f"Checked against {must_txt} and the learned relevance bar.",
+        "strategist": f"Prioritized: {location}, starts {starts_at} — fresh, local, time-sensitive.",
+        "drafter": f'Drafted an application/outreach angle for "{title}".',
+        "critic": "Red-teamed the draft against the spec; removed unsupported claims.",
     }
     return snippets.get(stage, "Stage complete.")

@@ -151,7 +151,7 @@ export function createMockApi() {
     return { accepted: true, watch_id: id };
   }
 
-  async function sendFeedback(candId, label) {
+  async function sendFeedback(candId, label, _watchId) {
     await tick(90);
     const cand = candidates.get(candId);
     if (cand) {
@@ -172,6 +172,13 @@ export function createMockApi() {
   async function getCurve() {
     await tick(100);
     return curve.map((p) => ({ ...p }));
+  }
+
+  async function getCandidates(watchId) {
+    await tick(100);
+    return [...candidates.values()]
+      .filter((c) => !watchId || c.watch_id === watchId)
+      .map((c) => ({ ...c, criteria: [...(c.criteria || [])] }));
   }
 
   // ---- Pipeline (V3) ----------------------------------------------------
@@ -252,6 +259,7 @@ export function createMockApi() {
     createWatch,
     sendFeedback,
     getCurve,
+    getCandidates,
     triggerPipeline,
     injectLiveFire,
     start,

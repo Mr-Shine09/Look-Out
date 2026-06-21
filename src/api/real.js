@@ -68,11 +68,16 @@ export function createRealApi(baseUrl = '') {
       }));
     },
 
-    async sendFeedback(candId, label) {
+    async sendFeedback(candId, label, watchId) {
       return request(`/api/candidates/${encodeURIComponent(candId)}/feedback`, {
         method: 'POST',
-        body: JSON.stringify({ label }),
+        body: JSON.stringify(watchId ? { label, watch_id: watchId } : { label }),
       });
+    },
+
+    async getCandidates(watchId) {
+      const qs = watchId ? `?watch_id=${encodeURIComponent(watchId)}` : '';
+      return asArray(await request(`/api/candidates${qs}`)).map(normalizeCandidate);
     },
 
     async getCurve() {

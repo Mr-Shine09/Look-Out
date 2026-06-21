@@ -17,6 +17,7 @@ REQUIRED_EVENT_FIELDS = {
 
 class EventSource(Protocol):
     def poll(self) -> list[dict]: ...
+    def snapshot(self) -> list[dict]: ...
 
 
 class SeedEventSource:
@@ -32,6 +33,10 @@ class SeedEventSource:
         batch = events[self._cursor : self._cursor + self.batch_size]
         self._cursor += len(batch)
         return batch
+
+    def snapshot(self) -> list[dict]:
+        """Full known event pool (for per-watch backfill on watch creation)."""
+        return self._read_events()
 
     def _read_events(self) -> list[dict]:
         if not self.path.exists():

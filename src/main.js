@@ -14,7 +14,7 @@ const api = createApi();
 // ---- Components ---------------------------------------------------------
 const board = Board({
   handlers: {
-    onFeedback: (candId, label) => api.sendFeedback(candId, label),
+    onFeedback: (candId, label, watchId) => api.sendFeedback(candId, label, watchId),
     onAct: (candId) => {
       pipeline.reset();
       api.triggerPipeline(candId);
@@ -75,6 +75,17 @@ api.subscribe((msg) => {
   for (const w of watches) board.addWatch(w);
   // Show the first watch's compiled spec in the creator panel as a sample.
   if (watches[0]) watchCreator.showSpec(watches[0].spec, watches[0].query_text);
+
+  // BUG-2 fix: rehydrate already-processed candidates so a page refresh doesn't
+  // empty the board (they otherwise only arrive over the WebSocket).
+  if (typeof api.getCandidates === 'function') {
+    try {
+      const existing = await api.getCandidates();
+      for (const cand of existing) board.routeCandidate(cand);
+    } catch (err) {
+      console.warn('[init] candidate backfill failed', err);
+    }
+  }
 
   const existingCurve = await api.getCurve();
   if (existingCurve.length) curve.setPoints(existingCurve);

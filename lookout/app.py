@@ -115,14 +115,19 @@ async def create_watch(payload: WatchCreate, response: Response) -> dict[str, An
 @app.post("/api/candidates/{candidate_id}/feedback")
 async def candidate_feedback(candidate_id: str, payload: FeedbackCreate) -> dict[str, Any]:
     try:
-        return await engine().feedback(candidate_id, payload.label)
+        return await engine().feedback(candidate_id, payload.label, payload.watch_id)
     except KeyError:
         raise HTTPException(status_code=404, detail="candidate not found")
 
 
+@app.get("/api/candidates")
+def list_candidates(watch_id: str | None = None) -> list[dict[str, Any]]:
+    return engine().list_candidates(watch_id)
+
+
 @app.get("/api/curve")
-def get_curve() -> list[dict[str, Any]]:
-    return engine().get_curve()
+def get_curve(watch_id: str | None = None) -> list[dict[str, Any]]:
+    return engine().get_curve(watch_id)
 
 
 @app.post("/api/candidates/{candidate_id}/pipeline", status_code=202)

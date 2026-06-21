@@ -9,3 +9,4 @@ class WatchCreate(BaseModel):
 
 class FeedbackCreate(BaseModel):
     label: Literal["relevant", "not_relevant"]
+    watch_id: str | None = None

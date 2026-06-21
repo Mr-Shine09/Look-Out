@@ -75,6 +75,11 @@ class ScrapeEventSource:
         self._cursor += len(batch)
         return batch
 
+    def snapshot(self) -> list[dict[str, str]]:
+        """Full known event pool (for per-watch backfill on watch creation)."""
+        self._ensure_fresh()
+        return list(self._events)
+
     # ---- Refresh + cache --------------------------------------------------
     def _ensure_fresh(self) -> None:
         now = time.time()
