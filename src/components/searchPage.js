@@ -306,21 +306,34 @@ export function SearchPage({ onFollow }) {
     )
   );
 
+  const examplesWrap = el('div', { class: 'examples-wrap reveal' }, [
+    el('p', { class: 'examples-label faint', text: 'Or start with something Lookout already watches' }),
+    examples,
+  ]);
+
+  const scrollCue = el(
+    'button',
+    {
+      class: 'scroll-cue',
+      type: 'button',
+      onClick: () => examplesWrap.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    },
+    ['See what it already watches', el('span', { class: 'cue-arrow', text: '↓' })]
+  );
+
   const node = el('section', { class: 'page page-search', hidden: true }, [
     el('div', { class: 'search-hero' }, [
       el('p', { class: 'eyebrow', text: 'Search' }),
-      el('h1', { class: 'hero-title head', text: 'Tell Lookout what to watch.' }),
+      el('h1', { class: 'hero-title head', text: 'Built to talk less.' }),
       el('p', {
         class: 'hero-sub',
-        text: 'Every other alert tool is built to ping you more. Lookout only speaks up when something is genuinely new and genuinely matters.',
+        text: 'Every other alert tool is built to ping you more. Lookout is the first one optimized to stay quiet — it remembers what it has already told you, and only speaks when something is genuinely new and genuinely matters.',
       }),
       el('div', { class: 'search-bar' }, [input, submit]),
       el('div', { class: 'adv-panel' }, [advancedToggle, advancedBody]),
+      scrollCue,
     ]),
-    el('div', { class: 'examples-wrap' }, [
-      el('p', { class: 'examples-label faint', text: 'Or start with something Lookout already watches' }),
-      examples,
-    ]),
+    examplesWrap,
   ]);
 
   return { node, key: 'search', onShow: () => input.focus() };

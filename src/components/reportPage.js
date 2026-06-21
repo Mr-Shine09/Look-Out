@@ -99,8 +99,8 @@ export function ReportPage({ onBack }) {
 
   const topicEl = el('span', { class: 'report-topic', text: scope.title });
   const loginBox = el('div', { class: 'login-box' });
-  const grid = el('div', { class: 'channel-grid' });
-  const connectorsList = el('div', { class: 'connectors-list' });
+  const grid = el('div', { class: 'channel-grid reveal' });
+  const connectorsList = el('div', { class: 'connectors-list reveal' });
   const confirmMsg = el('p', { class: 'report-confirm', hidden: true });
 
   // ---- Mock login --------------------------------------------------------

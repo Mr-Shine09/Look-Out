@@ -137,9 +137,35 @@ api.subscribe((msg) => {
   }
 });
 
+// ---- Scroll-triggered wash-in reveals ----------------------------------
+// Below-fold blocks tagged `.reveal` dissolve in as they enter the viewport.
+const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const revealObserver = prefersReduced
+  ? null
+  : new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('reveal--in');
+            revealObserver.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -6% 0px' }
+    );
+
+function registerReveals() {
+  document.querySelectorAll('.reveal:not([data-rev])').forEach((node) => {
+    node.setAttribute('data-rev', '');
+    if (revealObserver) revealObserver.observe(node);
+    else node.classList.add('reveal--in');
+  });
+}
+
 // ---- Bootstrap ---------------------------------------------------------
 router.start();
 api.start();
+registerReveals();
 
 // Console demo hook: lookout.fire() injects a guaranteed match on cue.
 window.lookout = {

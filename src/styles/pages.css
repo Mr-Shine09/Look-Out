@@ -1100,12 +1100,14 @@
 }
 
 /* ============================================================
-   ORIGIN PREMIUM OVERRIDES
-   Later rules win — dark fintech polish + motion layered on the
-   base components, without touching markup or logic.
+   WATERCOLOR CALM OVERRIDES
+   Later rules win — light watercolor polish + calm, organic motion
+   layered on the base components, without touching markup/logic.
+   Concept: the paper is the silence Lookout keeps; one coral
+   brushstroke is the single alert it surfaces.
    ============================================================ */
 
-/* Step nav → animated glowing underline */
+/* Step nav → animated cornflower underline */
 .app-nav {
   gap: 4px;
   padding: 0;
@@ -1130,7 +1132,6 @@
   height: 2px;
   border-radius: 2px;
   background: var(--scan);
-  box-shadow: 0 0 10px var(--glow);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.32s var(--ease);
@@ -1140,11 +1141,14 @@
   transform: scaleX(1);
 }
 .nav-step--active {
-  color: var(--text);
+  color: var(--scan-deep);
   background: none;
 }
 
-/* Elegant serif headlines; soft white sheen on the hero */
+/* Brand wordmark — coral "out" */
+.app-header .logo .eye { color: var(--signal); }
+
+/* Happy watercolor headlines — multi-hue gradient on the hero */
 .hero-title,
 .stay-title,
 .report-title {
@@ -1154,17 +1158,17 @@
   line-height: 1.02;
 }
 .hero-title {
-  font-size: clamp(42px, 7.4vw, 86px);
-  background: linear-gradient(176deg, #ffffff 0%, #eef0ea 42%, #b9bcb4 100%);
+  font-size: clamp(44px, 8vw, 92px);
+  background: linear-gradient(100deg, #2f5fd0 0%, #7b6cf0 46%, #ff8a5b 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
-.eyebrow {
-  color: var(--scan);
-}
+.eyebrow { color: var(--scan-deep); }
+.stay-topic,
+.report-topic { color: var(--scan-deep); }
 
-/* Premium rounded buttons with a shimmer sweep */
+/* Rounded buttons with a soft sheen sweep */
 .primary-btn,
 .search-go,
 .ghost-btn {
@@ -1176,14 +1180,15 @@
 .search-go {
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 24px var(--scan-dim);
+  color: var(--void);
+  box-shadow: 0 8px 22px var(--scan-dim);
 }
 .primary-btn::after,
 .search-go::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 25%, rgba(255, 255, 255, 0.55) 50%, transparent 75%);
+  background: linear-gradient(120deg, transparent 25%, rgba(255, 255, 255, 0.5) 50%, transparent 75%);
   transform: translateX(-130%);
   transition: transform 0.65s var(--ease);
   pointer-events: none;
@@ -1194,13 +1199,13 @@
 }
 .primary-btn:hover,
 .search-go:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.04);
   transform: translateY(-1px);
-  box-shadow: 0 12px 34px var(--glow);
+  box-shadow: 0 12px 30px var(--glow);
 }
 .ghost-btn:hover {
   border-color: var(--scan);
-  color: var(--text);
+  color: var(--scan-deep);
   box-shadow: 0 0 0 3px var(--scan-dim);
 }
 
@@ -1211,21 +1216,42 @@
   font-weight: 600;
   letter-spacing: -0.01em;
 }
+.ratio-num--surfaced { color: var(--signal); }
 
-/* Subtle semantic hues — surfaced green / dup blue / off grey */
-.feed-section-label--dup { color: #74a8ff; }
-.card--dup { border-left-color: #74a8ff; }
-.kw-chip--on { border-color: var(--scan); }
-.connector-card--on { border-color: rgba(194, 242, 78, 0.4); }
-.report-confirm { border-color: rgba(194, 242, 78, 0.3); }
-.stat--surfaced { border-color: rgba(194, 242, 78, 0.35); }
+/* Watercolor semantic hues — surfaced coral / dup lilac / off grey */
+.feed-section-label--surfaced { color: var(--signal); }
+.feed-section-label--dup { color: #9485e8; }
+.card--dup { border-left-color: #9485e8; }
+.kw-chip--on { border-color: var(--scan); background: var(--scan-dim); }
+.connector-card--on { border-color: rgba(91, 141, 239, 0.45); }
+.report-confirm {
+  border-color: rgba(91, 141, 239, 0.35);
+  background: var(--scan-dim);
+}
+.stat--surfaced { border-color: rgba(255, 138, 91, 0.4); }
+.stat--surfaced .stat-num { color: var(--signal); }
 .connector-preview {
-  background: #0b0c0d;
-  color: #dfe2db;
+  background: var(--panel-2);
+  color: var(--text-dim);
   border-color: var(--line-strong);
 }
 
-/* Card / tile hover — lift + glow */
+/* The product, visualized:
+   surfaced = one confident coral brushstroke; silenced = fades into paper */
+.card.accepted {
+  border-left: 3px solid var(--signal);
+}
+.card--silenced {
+  opacity: 0.5;
+  filter: saturate(0.35);
+  transition: opacity 0.25s var(--ease), filter 0.25s var(--ease);
+}
+.card--silenced:hover {
+  opacity: 0.95;
+  filter: saturate(0.9);
+}
+
+/* Card / tile hover — gentle lift + soft cornflower ring */
 .example-card,
 .stat,
 .channel-card,
@@ -1236,43 +1262,76 @@
 .example-card:hover {
   transform: translateY(-4px);
   border-color: var(--scan);
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--scan-dim);
+  box-shadow: 0 20px 44px rgba(42, 45, 52, 0.12), 0 0 0 1px var(--scan-dim);
 }
-.example-card:hover .example-icon {
-  text-shadow: 0 0 18px var(--glow);
-}
+.example-card:hover .example-icon { color: var(--scan-deep); }
 .stat:hover,
 .channel-card:hover,
 .connector-card:hover {
   transform: translateY(-2px);
   border-color: var(--line-strong);
+  box-shadow: 0 12px 30px rgba(42, 45, 52, 0.08);
 }
-.ratio-card {
-  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
-}
+.ratio-card { box-shadow: 0 16px 44px rgba(42, 45, 52, 0.07); }
 
-/* Glowing live dot + green pulse */
-.live-dot {
-  box-shadow: 0 0 12px var(--glow);
-}
+/* Glowing live dot + cornflower pulse */
+.live-dot { box-shadow: 0 0 10px var(--glow); }
 @keyframes live-pulse {
-  0% { box-shadow: 0 0 0 0 var(--scan-dim); }
-  70% { box-shadow: 0 0 0 9px rgba(194, 242, 78, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(194, 242, 78, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(91, 141, 239, 0.45); }
+  70% { box-shadow: 0 0 0 9px rgba(91, 141, 239, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(91, 141, 239, 0); }
 }
 
-/* Staggered entrance — replays on every page navigation */
-.page--active .eyebrow { animation: fade-up 0.6s var(--ease) both; }
+/* ---- Full-bleed search hero (feature a) ------------------------------- */
+.search-hero {
+  padding: clamp(40px, 9vh, 92px) 0 24px;
+}
+.hero-sub { font-size: 17px; max-width: 680px; }
+.scroll-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 38px;
+  appearance: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  transition: color 0.18s var(--ease);
+}
+.scroll-cue:hover { color: var(--scan-deep); }
+.scroll-cue .cue-arrow {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  color: var(--scan-deep);
+  animation: cue-bounce 1.9s var(--ease) infinite;
+}
+@keyframes cue-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
+/* Calm entrance — soft wash-in dissolve, staggered, replays per page.
+   Below-fold blocks (examples, channels, connectors) reveal on scroll
+   via the .reveal hook in theme.css instead. */
+.page--active .eyebrow { animation: wash-in 0.6s var(--ease) both; }
 .page--active .hero-title,
 .page--active .stay-title,
-.page--active .report-title { animation: fade-up 0.7s var(--ease) 0.06s both; }
-.page--active .hero-sub { animation: fade-up 0.7s var(--ease) 0.13s both; }
-.page--active .search-bar { animation: fade-up 0.7s var(--ease) 0.2s both; }
-.page--active .adv-panel { animation: fade-up 0.7s var(--ease) 0.26s both; }
-.page--active .live-strip { animation: fade-up 0.7s var(--ease) 0.1s both; }
-.page--active .ratio-card { animation: fade-up 0.7s var(--ease) 0.16s both; }
-.page--active .stay-stats { animation: fade-up 0.7s var(--ease) 0.24s both; }
-.page--active .examples-wrap { animation: fade-up 0.7s var(--ease) 0.3s both; }
-.page--active .login-box { animation: fade-up 0.7s var(--ease) 0.1s both; }
-.page--active .channel-grid { animation: fade-up 0.7s var(--ease) 0.18s both; }
-.page--active .connectors-list { animation: fade-up 0.7s var(--ease) 0.24s both; }
+.page--active .report-title { animation: wash-in 0.75s var(--ease) 0.06s both; }
+.page--active .hero-sub { animation: wash-in 0.75s var(--ease) 0.13s both; }
+.page--active .search-bar { animation: wash-in 0.75s var(--ease) 0.2s both; }
+.page--active .adv-panel { animation: wash-in 0.75s var(--ease) 0.26s both; }
+.page--active .scroll-cue { animation: wash-in 0.75s var(--ease) 0.33s both; }
+.page--active .live-strip { animation: wash-in 0.7s var(--ease) 0.1s both; }
+.page--active .ratio-card { animation: wash-in 0.75s var(--ease) 0.16s both; }
+.page--active .stay-stats { animation: wash-in 0.75s var(--ease) 0.24s both; }
+.page--active .login-box { animation: wash-in 0.7s var(--ease) 0.1s both; }

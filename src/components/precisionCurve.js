@@ -24,8 +24,8 @@ export function PrecisionCurve() {
   // Gradient def for the area fill.
   const defs = svgEl('defs');
   const grad = svgEl('linearGradient', { id: 'curveGrad', x1: '0', y1: '0', x2: '0', y2: '1' });
-  grad.append(svgEl('stop', { offset: '0%', 'stop-color': '#c2f24e', 'stop-opacity': '0.26' }));
-  grad.append(svgEl('stop', { offset: '100%', 'stop-color': '#c2f24e', 'stop-opacity': '0' }));
+  grad.append(svgEl('stop', { offset: '0%', 'stop-color': '#5b8def', 'stop-opacity': '0.30' }));
+  grad.append(svgEl('stop', { offset: '100%', 'stop-color': '#5b8def', 'stop-opacity': '0' }));
   defs.append(grad);
   svg.append(defs);
 

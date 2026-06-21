@@ -1,34 +1,47 @@
-/* Lookout design system — dark premium fintech, after Origin (useorigin.com).
-   Obsidian #0f1011 + Void Black on a slow animated aurora; refined off-white
-   type with an elegant high-contrast serif (Fraunces ≈ Lyon Display) for big
-   headlines and a neutral grotesque (Inter ≈ Suisse Int'l) for everything else.
-   Luminous green accent used sparingly + glow. Rich, smooth micro-motion.
+/* Lookout design system — "Watercolor Calm".
+   Warm paper (#fbf8f2) under soft, breathing watercolor washes; friendly
+   cornflower blue is the brand, a warm coral is the rare "this one matters"
+   signal. Concept: the paper is the silence Lookout keeps; a single coral
+   brushstroke is the one alert it surfaces. Elegant-but-happy serif (Fraunces)
+   for headlines, clean grotesque (Inter) for UI. Calm, organic micro-motion.
    Reused across every component so the dashboard reads as one product. */
 
 :root {
-  /* Core palette — Origin obsidian + void black */
-  --void: #000000; /* void black */
-  --obsidian: #0f1011; /* primary app surface */
-  --void-2: #0c0e0f; /* raised surface / input fill */
-  --panel: #141617; /* card / panel surface */
-  --panel-2: #1b1e1f; /* hover / nested surface */
-  --line: rgba(255, 255, 255, 0.09); /* hairline borders */
-  --line-strong: rgba(255, 255, 255, 0.17);
+  /* Core palette — Watercolor Calm: warm paper + cornflower + coral */
+  --void: #ffffff; /* knockout text/icon color on accents */
+  --obsidian: #fbf8f2; /* warm watercolor paper — app background */
+  --void-2: #fffdf9; /* raised surface / input fill */
+  --panel: #ffffff; /* card / panel surface */
+  --panel-2: #f3eee4; /* warm hover / nested surface */
+  --line: rgba(42, 45, 52, 0.10); /* hairline borders */
+  --line-strong: rgba(42, 45, 52, 0.18);
 
-  /* Accent — luminous green + glow (used sparingly) */
-  --scan: #c2f24e; /* brand / active / watching */
-  --scan-dim: rgba(194, 242, 78, 0.14);
-  --glow: rgba(194, 242, 78, 0.55);
-  --signal: #c2f24e; /* real match (surfaced) */
-  --signal-dim: rgba(194, 242, 78, 0.12);
-  --reject: #7c7f7a; /* muted grey — rejected / silenced */
-  --reject-dim: rgba(255, 255, 255, 0.05);
-  --danger: #ff6b6b;
+  /* Accent — cornflower blue (brand / active / watching) */
+  --scan: #5b8def;
+  --scan-deep: #2f5fd0;
+  --scan-dim: rgba(91, 141, 239, 0.14);
+  --glow: rgba(91, 141, 239, 0.40);
 
-  /* Text */
-  --text: #f3f5f1;
-  --text-dim: #a7aaa4;
-  --text-faint: #6e716c;
+  /* Signal — warm coral: the one alert that matters (surfaced) */
+  --signal: #ff8a5b;
+  --signal-dim: rgba(255, 138, 91, 0.15);
+
+  /* Suppressed / muted — fades into the paper */
+  --reject: #a6abb5;
+  --reject-dim: rgba(42, 45, 52, 0.05);
+  --danger: #e5484d;
+
+  /* Watercolor wash palette — background blooms + category tags */
+  --wash-sky: #abd3f5;
+  --wash-blush: #f8b9c4;
+  --wash-peach: #fbd3a6;
+  --wash-mint: #a8e0c9;
+  --wash-lilac: #c9b8f0;
+
+  /* Text — soft charcoal, never harsh black */
+  --text: #2a2d34;
+  --text-dim: #5d626c;
+  --text-faint: #969ba6;
 
   /* Typography */
   --font-mono: 'Inter', system-ui, sans-serif; /* labels: clean grotesque caps */
@@ -69,7 +82,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Slow drifting aurora behind everything */
+/* Soft watercolor blooms slowly breathing behind everything */
 body::before {
   content: '';
   position: fixed;
@@ -77,27 +90,30 @@ body::before {
   z-index: -2;
   pointer-events: none;
   background:
-    radial-gradient(38vmax 38vmax at 16% 10%, rgba(194, 242, 78, 0.12), transparent 60%),
-    radial-gradient(34vmax 34vmax at 84% 6%, rgba(74, 150, 255, 0.10), transparent 60%),
-    radial-gradient(42vmax 42vmax at 64% 96%, rgba(150, 96, 255, 0.09), transparent 62%);
-  filter: blur(28px);
-  animation: aurora 26s var(--ease) infinite alternate;
+    radial-gradient(40vmax 36vmax at 12% 8%, rgba(171, 211, 245, 0.55), transparent 60%),
+    radial-gradient(34vmax 32vmax at 88% 4%, rgba(248, 185, 196, 0.48), transparent 62%),
+    radial-gradient(38vmax 38vmax at 80% 92%, rgba(201, 184, 240, 0.45), transparent 62%),
+    radial-gradient(36vmax 34vmax at 20% 96%, rgba(168, 224, 201, 0.42), transparent 62%),
+    radial-gradient(30vmax 30vmax at 50% 48%, rgba(251, 211, 166, 0.30), transparent 65%);
+  filter: blur(44px) saturate(1.05);
+  animation: bloom 32s var(--ease) infinite alternate;
 }
-@keyframes aurora {
-  0% { transform: translate3d(-3%, -2%, 0) scale(1) rotate(0deg); }
-  50% { transform: translate3d(3%, 2%, 0) scale(1.1) rotate(6deg); }
-  100% { transform: translate3d(-2%, 3%, 0) scale(1.04) rotate(-4deg); }
+@keyframes bloom {
+  0% { transform: translate3d(-2%, -1%, 0) scale(1) rotate(0deg); }
+  50% { transform: translate3d(2%, 2%, 0) scale(1.08) rotate(4deg); }
+  100% { transform: translate3d(-1%, 2%, 0) scale(1.03) rotate(-3deg); }
 }
 
-/* Fine film grain over the aurora */
+/* Fine paper tooth over the washes */
 body::after {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  opacity: 0.045;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -125,6 +141,24 @@ body::after {
 @keyframes float-soft {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
+}
+/* Watercolor wash-in for scroll reveals — soft blur dissolve */
+@keyframes wash-in {
+  from { opacity: 0; transform: translateY(22px); filter: blur(7px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+/* Brushstroke wipe — used for the surfaced "one alert" accent */
+@keyframes brush-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+/* Scroll-reveal hook (set by main.js IntersectionObserver) */
+.reveal {
+  opacity: 0;
+}
+.reveal.reveal--in {
+  animation: wash-in 0.7s var(--ease) both;
 }
 
 /* Utility classes */

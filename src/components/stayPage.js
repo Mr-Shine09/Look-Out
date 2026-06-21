@@ -35,6 +35,7 @@ export function StayPage({ api, onReport }) {
   const pipeline = Pipeline();
   pipeline.node.hidden = true; // on-demand: only appears once the user hits "act"
   const curve = PrecisionCurve();
+  curve.node.classList.add('reveal'); // wash-in on scroll
   let scope = { watchId: null, title: 'your watch' };
   const records = new Map(); // cid -> candidate
   let lastCheckedAt = Date.now();
