@@ -7,9 +7,9 @@
 .app-main {
   display: block;
   width: 100%;
-  max-width: 920px;
+  max-width: 940px;
   margin: 0 auto;
-  padding: 40px 24px 80px;
+  padding: 56px 24px 96px;
 }
 
 /* Brand is now a button (clicks home) — strip default chrome. */
@@ -82,16 +82,17 @@
 .hero-title,
 .stay-title,
 .report-title {
-  font-size: clamp(28px, 4.4vw, 46px);
-  line-height: 1.04;
-  margin: 0 0 14px;
-  letter-spacing: -0.04em;
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 1.0;
+  margin: 0 0 18px;
+  letter-spacing: -0.035em;
 }
 .hero-sub {
   color: var(--text-dim);
-  font-size: 15px;
-  max-width: 620px;
-  margin: 0 0 26px;
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 640px;
+  margin: 0 0 30px;
 }
 
 /* ---- Shared buttons ---------------------------------------------------- */
@@ -565,11 +566,11 @@
   gap: 2px;
 }
 .ratio-num {
-  font-family: var(--font-head);
-  font-size: 46px;
-  font-weight: 800;
-  line-height: 0.95;
-  letter-spacing: -0.04em;
+  font-family: var(--font-lcd);
+  font-size: 54px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  font-feature-settings: 'tnum' 1;
 }
 .ratio-num--surfaced {
   color: var(--signal);
@@ -633,11 +634,11 @@
   background: var(--panel);
 }
 .stat-num {
-  font-family: var(--font-head);
-  font-size: 32px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
+  font-family: var(--font-lcd);
+  font-size: 34px;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  font-feature-settings: 'tnum' 1;
 }
 .stat-label {
   font-family: var(--font-mono);
@@ -822,10 +823,10 @@
 /* ---- Report section headings ------------------------------------------ */
 .report-section-title {
   font-family: var(--font-head);
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 21px;
+  font-weight: 700;
   letter-spacing: -0.03em;
-  margin: 30px 0 6px;
+  margin: 34px 0 6px;
 }
 .report-section-sub {
   font-size: 13px;
@@ -877,7 +878,7 @@
   background: var(--scan);
   color: var(--void);
   font-family: var(--font-head);
-  font-weight: 800;
+  font-weight: 700;
   font-size: 18px;
 }
 .login-who {
