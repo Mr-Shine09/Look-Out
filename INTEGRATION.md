@@ -40,7 +40,7 @@ commented lines.
 { "type": "candidate", "watch_id", "id", "title", "source", "url",
   "judgment": "accepted"|"rejected", "reason", "timestamp",
   // optional-but-used for richer UI (present on the backend cand hash):
-  "location", "starts_at", "status", "state": "new"|"changed"|"seen", "reasoning", "criteria": [{ok,text}] }
+  "location", "starts_at", "status", "state": "new"|"changed"|"seen"|"duplicate", "reasoning", "criteria": [{ok,text}] }
 
 { "type": "spec_ready", "watch_id", "must_match": [], "reject_cases": [] }
 
@@ -58,6 +58,11 @@ commented lines.
   hash. If any are missing, the card degrades gracefully (skips that line).
 - **`state: "changed"`** drives a teal "changed" badge — emit it when a HASH-diff re-surfaces an
   item (status closed→open, time/location change).
+- **`state: "duplicate"`** marks a semantic duplicate that was suppressed by vector-KNN dedup.
+  The Stay page counts these under "duplicates silenced" (and lists them in the *Silenced —
+  semantic duplicates* section) instead of surfacing them. Emit it for candidates that matched an
+  existing alert vector above the dedup threshold. (Frontend-added in the Search→Stay→Report
+  redesign; if the backend doesn't emit it, duplicates simply won't be separated out.)
 - **`false_alarm_rate`** is expected in `0..1`; seed around `0.33` so the curve has room to fall.
   Push a `curve_update` both periodically and after each feedback so the chart reacts to thumbs.
 - **`criteria`** is optional sugar for the "why" panel: `[{ ok: boolean, text: string }]`. If you

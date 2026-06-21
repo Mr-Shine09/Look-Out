@@ -63,3 +63,30 @@ Owner: Benn (frontend/UX). Friend "Oak" owns backend (has a Netlify deploy).
   frontend + OAK docs. Wrote brainstorm/plan
   (`.windsurf/plans/lookout-frontend-redesign-f73112.md`). Backend tip = `a001629` (no new commits).
 - **2026-06-21** — Phase 1: created this file.
+- **2026-06-21** — Phase 2 (`581b6d1`): Search advanced panel — NL bar + collapsible advanced
+  controls (location/radius, time window, type/sources, suppression-strictness dial, notify
+  frequency + quiet hours, include/exclude keyword chips) building a structured `searchSpec`;
+  `main.js composeQuery` now turns the spec into a richer query string (createWatch signature
+  unchanged → mock/real parity kept).
+- **2026-06-21** — Phase 3 (`16d8bc7`): Stay redesign — dominant "surfaced · silenced" ratio
+  card + proportion bar, three distinct sections (surfaced / dup / off-topic), liveness strip,
+  precision sparkline (reused `precisionCurve.js`, fed by `curve_update`), pipeline now on-demand.
+  Small backward-compatible `mock.js` change: semantic duplicates emit `state: 'duplicate'` so
+  "duplicates silenced" is provable. Documented the optional `state:'duplicate'` in INTEGRATION.md.
+- **2026-06-21** — Phase 4 (`1edd5e8`): Report/Delivery — mock login (name/email in localStorage,
+  no auth), per-channel target fields + Test-send stub, generic AI-agent connectors
+  (Claude / MCP / Custom templates, endpoint+token, enable toggle, "what it receives" JSON
+  preview), all persisted to localStorage. Progress-tracking intentionally omitted per Benn.
+- **2026-06-21** — Phase 5: INTEGRATION.md note for `state:'duplicate'`; build verified clean
+  (20 modules); pushed branch.
+
+## SUPPRESSION-ENGINE GOAL CHECK (where we are vs the big picture)
+- SEARCH now lets the user *scope precisely* — including the suppression-strictness dial that is
+  literally the product's core tunable. ✅
+- STAY now *makes suppression visible* (surfaced vs silenced, duplicates vs off-topic, quieter
+  over time via the curve) — the "notify you less" story is legible at a glance. ✅
+- REPORT now *closes the loop quietly* and lets any AI agent receive survivors (generic connectors)
+  + (mock) ties delivery to a user. ✅
+- NEXT: confirm Oak's example→watchId mapping for live mode (so "events near me" shows surfaced
+  items, not an all-silenced watch); optionally wire structured `searchSpec` to a real backend
+  param once Oak is ready; visual polish once Oak shares UI references.
