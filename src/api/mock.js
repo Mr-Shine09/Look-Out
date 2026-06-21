@@ -174,6 +174,42 @@ export function createMockApi() {
     return curve.map((p) => ({ ...p }));
   }
 
+  let delivery = { channels: ['dashboard'], discord_webhook: '', webhook_url: '', email: '' };
+  async function getDelivery() {
+    await tick(80);
+    return { ...delivery };
+  }
+  async function saveDelivery(config = {}) {
+    await tick(120);
+    delivery = {
+      channels: Array.isArray(config.channels) ? config.channels : [],
+      discord_webhook: config.discord_webhook || '',
+      webhook_url: config.webhook_url || '',
+      email: config.email || '',
+    };
+    return { ok: true, config: { ...delivery }, test: config.test ? { ok: true, sent: [] } : undefined };
+  }
+
+  let profile = {
+    full_name: '', email: '', phone: '', dob: '', school: '', major: '',
+    grad_year: '', github: '', portfolio: '', linkedin: '', bio: '',
+  };
+  async function getProfile() {
+    await tick(80);
+    return { ...profile };
+  }
+  async function saveProfile(next = {}) {
+    await tick(120);
+    profile = { ...profile, ...next };
+    return { ok: true, profile: { ...profile } };
+  }
+  async function applyCandidate(candId, _watchId) {
+    await tick(100);
+    const cand = candidates.get(candId);
+    if (cand) cand.applied = true;
+    return { ok: true, applied_at: new Date().toISOString() };
+  }
+
   async function getCandidates(watchId) {
     await tick(100);
     return [...candidates.values()]
@@ -278,6 +314,11 @@ export function createMockApi() {
     createWatch,
     sendFeedback,
     getCurve,
+    getDelivery,
+    saveDelivery,
+    getProfile,
+    saveProfile,
+    applyCandidate,
     getCandidates,
     updateSpec,
     triggerPipeline,

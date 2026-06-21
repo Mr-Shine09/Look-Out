@@ -1,6 +1,7 @@
 import { el, clear } from '../lib/dom.js';
 import { CandidateCard } from './candidateCard.js';
 import { Pipeline } from './pipeline.js';
+import { autoApply } from '../lib/autoApply.js';
 
 /**
  * STAY — one purpose: show that Lookout is watching, and staying quiet.
@@ -24,6 +25,13 @@ export function StayPage({ api, onReport }) {
       api.triggerPipeline(candId);
       pipeline.node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     },
+    onApply: (cand) =>
+      autoApply(cand, api, {
+        onApplied: () => {
+          const rec = records.get(cand.id);
+          if (rec) rec.applied = true;
+        },
+      }),
   };
 
   // ---- Header / stats ----------------------------------------------------

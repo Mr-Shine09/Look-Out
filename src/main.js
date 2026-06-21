@@ -4,6 +4,7 @@ import './styles/pages.css';
 
 import { el } from './lib/dom.js';
 import { createApi } from './api/index.js';
+import { pingSurfaced, requestNotifyPermission } from './lib/notify.js';
 import { createRouter } from './lib/router.js';
 import { Header } from './components/header.js';
 import { SearchPage } from './components/searchPage.js';
@@ -36,7 +37,7 @@ function composeQuery(query, filters = []) {
 const header = Header({ onNavigate: (key) => router.navigate(key) });
 
 const search = SearchPage({ onFollow: handleFollow });
-const report = ReportPage({ onBack: (s) => goStay(s) });
+const report = ReportPage({ api, onBack: (s) => goStay(s) });
 const stay = StayPage({
   api,
   onReport: (s) => {
@@ -106,6 +107,8 @@ api.subscribe((msg) => {
   switch (msg.type) {
     case 'candidate':
       stay.handleCandidate(msg);
+      // Live surfaced match (flagged server-side) -> ping. Backfill never sets notify.
+      if (msg.notify && msg.judgment === 'accepted') pingSurfaced(msg);
       break;
     case 'pipeline_stage':
       stay.handlePipeline(msg);
@@ -121,6 +124,8 @@ api.subscribe((msg) => {
 // ---- Bootstrap ---------------------------------------------------------
 router.start();
 api.start();
+// Best-effort: ask for native notification permission on first interaction.
+window.addEventListener('pointerdown', () => requestNotifyPermission(), { once: true });
 
 // Console demo hook: lookout.fire() injects a guaranteed match on cue.
 window.lookout = {

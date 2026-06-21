@@ -222,8 +222,10 @@ class ScrapeEventSource:
             "location": str(location),
             "status": "open",
             "description": description,
+            "thumbnail": str(event.get("cover_url") or event.get("social_image_url") or ""),
         }
 
     @staticmethod
     def _normalize(event: dict[str, Any]) -> dict[str, str]:
-        return {field: str(event.get(field, "")) for field in REQUIRED_EVENT_FIELDS}
+        fields = REQUIRED_EVENT_FIELDS | {"thumbnail"}
+        return {field: str(event.get(field, "")) for field in fields}

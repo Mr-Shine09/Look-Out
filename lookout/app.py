@@ -1,4 +1,5 @@
 import asyncio
+import json
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -8,12 +9,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .embeddings import EmbeddingService
 from .engine import LookoutEngine
-from .event_source import SeedEventSource
+from .devpost_source import DevpostEventSource
+from .event_source import MultiEventSource, SeedEventSource
 from .scrape_source import ScrapeEventSource
+from .search_source import SearchEventSource
 from .judge import SpecAndFitJudge
 from .learning import LearningService
 from .redis_store import RedisStore
-from .schemas import FeedbackCreate, SpecUpdate, WatchCreate
+from .notify import Notifier
+from .schemas import DeliveryUpdate, FeedbackCreate, ProfileUpdate, SpecUpdate, WatchCreate
 from .settings import get_settings
 from .tracing import setup_sentry, setup_tracing
 from .websocket import FeedHub
@@ -30,7 +34,64 @@ async def lifespan(app: FastAPI):
     setup_tracing()
     feed = FeedHub()
     store = RedisStore(settings.redis_url)
-    if settings.event_source == "scrape":
+    if settings.event_source == "sites":
+        sub_sources = []
+        if "luma" in settings.site_sources:
+            sub_sources.append(
+                ScrapeEventSource(
+                    sources=settings.scrape_sources,
+                    cache_path=settings.scrape_cache_path,
+                    batch_size=settings.event_batch_size,
+                    refresh_seconds=settings.scrape_refresh_seconds,
+                    use_browserbase=settings.use_browserbase,
+                    bb_api_key=settings.browserbase_api_key,
+                    bb_project_id=settings.browserbase_project_id,
+                )
+            )
+        if "devpost" in settings.site_sources:
+            sub_sources.append(
+                DevpostEventSource(
+                    queries=settings.devpost_queries,
+                    cache_path=settings.devpost_cache_path,
+                    batch_size=settings.event_batch_size,
+                    refresh_seconds=settings.scrape_refresh_seconds,
+                    max_pages=settings.devpost_max_pages,
+                )
+            )
+        if "search" in settings.site_sources:
+            sub_sources.append(
+                SearchEventSource(
+                    queries=settings.search_queries,
+                    api_key=settings.tavily_api_key,
+                    cache_path=settings.search_cache_path,
+                    batch_size=settings.event_batch_size,
+                    refresh_seconds=settings.search_refresh_seconds,
+                    max_results=settings.search_max_results,
+                    include_domains=settings.search_include_domains,
+                    provider=settings.search_provider,
+                )
+            )
+        source = MultiEventSource(sub_sources)
+        print(
+            f"[startup] event source: sites ({', '.join(settings.site_sources)}) "
+            f"browserbase={'on' if settings.use_browserbase else 'off'}"
+        )
+    elif settings.event_source == "search":
+        source = SearchEventSource(
+            queries=settings.search_queries,
+            api_key=settings.tavily_api_key,
+            cache_path=settings.search_cache_path,
+            batch_size=settings.event_batch_size,
+            refresh_seconds=settings.search_refresh_seconds,
+            max_results=settings.search_max_results,
+            include_domains=settings.search_include_domains,
+            provider=settings.search_provider,
+        )
+        print(
+            f"[startup] event source: search ({settings.search_provider}, "
+            f"{len(settings.search_queries)} queries, key={'set' if settings.tavily_api_key else 'MISSING'})"
+        )
+    elif settings.event_source == "scrape":
         source = ScrapeEventSource(
             sources=settings.scrape_sources,
             cache_path=settings.scrape_cache_path,
@@ -50,7 +111,8 @@ async def lifespan(app: FastAPI):
     embeddings = EmbeddingService(settings.embedding_model)
     judge = SpecAndFitJudge(settings.anthropic_api_key)
     learning = LearningService(store.redis)
-    engine = LookoutEngine(settings, store, feed, source, embeddings, judge, learning)
+    notifier = Notifier(store, settings)
+    engine = LookoutEngine(settings, store, feed, source, embeddings, judge, learning, notifier)
     await engine.setup()
 
     scheduler = AsyncIOScheduler(timezone="UTC")
@@ -61,6 +123,7 @@ async def lifespan(app: FastAPI):
     app.state.feed = feed
     app.state.store = store
     app.state.engine = engine
+    app.state.notifier = notifier
     app.state.scheduler = scheduler
     try:
         yield
@@ -145,6 +208,51 @@ def list_candidates(watch_id: str | None = None) -> list[dict[str, Any]]:
 @app.get("/api/curve")
 def get_curve(watch_id: str | None = None) -> list[dict[str, Any]]:
     return engine().get_curve(watch_id)
+
+
+@app.get("/api/delivery")
+def get_delivery() -> dict[str, Any]:
+    return app.state.notifier.get_config()
+
+
+@app.post("/api/delivery")
+async def save_delivery(payload: DeliveryUpdate) -> dict[str, Any]:
+    notifier = app.state.notifier
+    cfg = notifier.set_config(payload.model_dump())
+    result: dict[str, Any] = {"ok": True, "config": cfg}
+    if payload.test:
+        result["test"] = await asyncio.to_thread(notifier.send_test, cfg)
+    return result
+
+
+PROFILE_KEY = "lookout:profile"
+
+
+@app.get("/api/profile")
+def get_profile() -> dict[str, Any]:
+    raw = app.state.store.redis.get(PROFILE_KEY)
+    if not raw:
+        return ProfileUpdate().model_dump()
+    try:
+        data = json.loads(raw)
+    except Exception:
+        data = {}
+    return ProfileUpdate(**{k: v for k, v in data.items() if k in ProfileUpdate.model_fields}).model_dump()
+
+
+@app.post("/api/profile")
+def save_profile(payload: ProfileUpdate) -> dict[str, Any]:
+    cfg = payload.model_dump()
+    app.state.store.redis.set(PROFILE_KEY, json.dumps(cfg))
+    return {"ok": True, "profile": cfg}
+
+
+@app.post("/api/candidates/{candidate_id}/apply")
+def apply_candidate(candidate_id: str, watch_id: str | None = None) -> dict[str, Any]:
+    try:
+        return engine().mark_applied(candidate_id, watch_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="candidate not found")
 
 
 @app.post("/api/candidates/{candidate_id}/pipeline", status_code=202)

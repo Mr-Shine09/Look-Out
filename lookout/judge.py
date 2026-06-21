@@ -66,7 +66,12 @@ class SpecAndFitJudge:
                 {
                     "role": "user",
                     "content": (
-                        "Compile this watch query into Redis Lookout matching criteria. "
+                        "Compile this watch query into BROAD Lookout matching criteria. "
+                        "Keep it lenient: at most 2-3 must_match items capturing only the "
+                        "CORE topic/intent of the query. Do NOT add narrow constraints that "
+                        "are rarely present in event listings (exact coordinates, precise "
+                        "registration_status, specific date windows). Add at most 2-3 "
+                        "reject_cases for clearly-unwanted results only. "
                         f"Query: {query_text!r}. JSON shape: "
                         "{\"must_match\":[...],\"reject_cases\":[...]}"
                     ),
@@ -88,19 +93,29 @@ class SpecAndFitJudge:
             model=self.model,
             max_tokens=900,
             temperature=0,
-            system="Return only compact JSON. No prose.",
+            system="You are a LENIENT relevance filter. Return only compact JSON. No prose.",
             messages=[
                 {
                     "role": "user",
                     "content": json.dumps(
                         {
-                            "task": "Judge whether the candidate fits the watch spec.",
+                            "task": (
+                                "Decide if the candidate is RELEVANT to the watcher's core "
+                                "interest expressed in watch_query. Be lenient: ACCEPT if the "
+                                "candidate is topically on-target, even when some details "
+                                "(exact location, dates, format, registration state) are "
+                                "missing or only partially match. Treat 'must_match' as SOFT "
+                                "preferences, not hard gates. Only REJECT if the candidate is "
+                                "clearly off-topic for watch_query OR clearly matches one of "
+                                "the reject_cases."
+                            ),
                             "return_shape": {
                                 "judgment": "accepted|rejected",
                                 "reason": "one line",
                                 "reasoning": "short explanation",
                                 "criteria": [{"ok": True, "text": "criterion"}],
                             },
+                            "watch_query": watch.get("query_text", ""),
                             "watch": watch,
                             "candidate": event,
                             "learned_score": learned_score,
@@ -180,7 +195,12 @@ def stub_judgment(
     if not is_event and _watch_mentions_hackathon(watch):
         rejections.append("Not a hackathon or build event.")
 
-    accepted = not rejections and is_event and (is_ai or not _watch_mentions_ai(watch))
+    requires_event = _watch_mentions_hackathon(watch)
+    accepted = (
+        not rejections
+        and (is_event or not requires_event)
+        and (is_ai or not _watch_mentions_ai(watch))
+    )
     if accepted:
         score_text = f" Learned score {learned_score:.2f}." if learned_score is not None else ""
         reason = f"In-person AI/ML build event near SF with registration open.{score_text}"

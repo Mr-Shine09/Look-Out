@@ -14,6 +14,7 @@ from .learning import LearningService
 from .redis_store import INDEX_NAME, RedisStore, decode, decode_hash, json_dumps, json_loads, tag_escape
 from .settings import Settings
 from .tracing import agent_span, set_span_output
+from .notify import Notifier
 from .websocket import FeedHub
 
 
@@ -33,6 +34,7 @@ class LookoutEngine:
         embeddings: EmbeddingService,
         judge: SpecAndFitJudge,
         learning: LearningService,
+        notifier: Notifier | None = None,
     ) -> None:
         self.settings = settings
         self.store = store
@@ -42,6 +44,7 @@ class LookoutEngine:
         self.embeddings = embeddings
         self.judge = judge
         self.learning = learning
+        self.notifier = notifier
         self._poll_lock = asyncio.Lock()
 
     async def setup(self) -> None:
@@ -80,7 +83,7 @@ class LookoutEngine:
                         input_value=str(event.get("title") or event.get("id") or ""),
                         attributes={"lookout.watch_id": str(watch.get("id", ""))},
                     ) as span:
-                        result = await self.process_event(watch, event, broadcast=True)
+                        result = await self.process_event(watch, event, broadcast=True, notify=True)
                         set_span_output(span, result)
                         results.append(result)
             return results
@@ -90,6 +93,7 @@ class LookoutEngine:
         watch: dict[str, Any],
         event: dict[str, Any],
         broadcast: bool,
+        notify: bool = False,
     ) -> dict[str, Any]:
         watch_id = watch["id"]
         cid = candidate_id(event)
@@ -163,6 +167,15 @@ class LookoutEngine:
         )
         self.redis.sadd(seen_key, event_token, content_hash)
         payload = self._candidate_payload(watch_id, cid)
+        surfaced = str(judgment.get("judgment")) == "accepted"
+        # Only live arrivals (notify=True) ping channels — never historical backfill.
+        if notify and surfaced:
+            payload["notify"] = True
+            if self.notifier is not None:
+                try:
+                    await asyncio.to_thread(self.notifier.notify_surfaced, watch, payload)
+                except Exception as exc:
+                    print(f"[notify] dispatch failed: {exc!r}")
         if broadcast:
             await self.feed.broadcast(payload)
         return {"status": "NEW", "id": cid, "reason": judgment["reason"]}
@@ -455,6 +468,7 @@ class LookoutEngine:
             "location": str(event.get("location") or ""),
             "status": str(event.get("status") or ""),
             "description": str(event.get("description") or ""),
+            "thumbnail": str(event.get("thumbnail") or ""),
             "content_hash": content_hash,
             "first_seen": now_iso(),
             "timestamp": now_iso(),
@@ -470,6 +484,10 @@ class LookoutEngine:
         existing = decode_hash(self.redis.hgetall(self.candidate_key(watch_id, cid)))
         if existing.get("first_seen"):
             mapping["first_seen"] = existing["first_seen"]
+        # Preserve an existing application so re-processing never wipes it.
+        if existing.get("applied"):
+            mapping["applied"] = existing["applied"]
+            mapping["applied_at"] = existing.get("applied_at", "")
         self.redis.hset(self.candidate_key(watch_id, cid), mapping=mapping)
 
     def _candidate_payload(self, watch_id: str, cid: str) -> dict[str, Any]:
@@ -481,6 +499,7 @@ class LookoutEngine:
             "title": cand.get("title"),
             "source": cand.get("source"),
             "url": cand.get("url"),
+            "thumbnail": cand.get("thumbnail"),
             "location": cand.get("location"),
             "starts_at": cand.get("starts_at"),
             "status": cand.get("status"),
@@ -489,8 +508,23 @@ class LookoutEngine:
             "reasoning": cand.get("reasoning"),
             "criteria": json_loads(cand.get("criteria"), []),
             "state": cand.get("state"),
+            "applied": cand.get("applied") == "1",
+            "applied_at": cand.get("applied_at") or "",
             "timestamp": cand.get("timestamp") or now_iso(),
         }
+
+    def mark_applied(self, cid: str, watch_id: str | None = None) -> dict[str, Any]:
+        key: str | None = None
+        if watch_id:
+            candidate_key = self.candidate_key(watch_id, cid)
+            if self.redis.exists(candidate_key):
+                key = candidate_key
+        if key is None:
+            key, _ = self.find_candidate(cid)
+        if key is None:
+            raise KeyError(cid)
+        self.redis.hset(key, mapping={"applied": "1", "applied_at": now_iso()})
+        return {"ok": True, "applied_at": now_iso()}
 
     def _learned_score(self, watch_id: str, embedding: np.ndarray, watch: dict[str, Any]) -> float | None:
         scored = self.learning.score(watch_id, embedding)

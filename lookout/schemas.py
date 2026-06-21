@@ -15,3 +15,25 @@ class FeedbackCreate(BaseModel):
 class SpecUpdate(BaseModel):
     must_match: list[str] = Field(default_factory=list)
     reject_cases: list[str] = Field(default_factory=list)
+
+
+class DeliveryUpdate(BaseModel):
+    channels: list[str] = Field(default_factory=list)
+    discord_webhook: str = ""
+    webhook_url: str = ""
+    email: str = ""
+    test: bool = False
+
+
+class ProfileUpdate(BaseModel):
+    full_name: str = ""
+    email: str = ""
+    phone: str = ""
+    dob: str = ""
+    school: str = ""
+    major: str = ""
+    grad_year: str = ""
+    github: str = ""
+    portfolio: str = ""
+    linkedin: str = ""
+    bio: str = ""

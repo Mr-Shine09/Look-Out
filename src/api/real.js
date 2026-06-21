@@ -10,6 +10,8 @@ export function createRealApi(baseUrl = '') {
       ...options,
       headers: {
         Accept: 'application/json',
+        // Bypass ngrok-free's interstitial for JSON/XHR calls (ignored by the real backend).
+        'ngrok-skip-browser-warning': 'true',
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         ...(options.headers || {}),
       },
@@ -92,6 +94,41 @@ export function createRealApi(baseUrl = '') {
 
     async getCurve() {
       return asArray(await request('/api/curve')).map(normalizeCurvePoint);
+    },
+
+    async getDelivery() {
+      return request('/api/delivery');
+    },
+
+    async saveDelivery(config = {}) {
+      return request('/api/delivery', {
+        method: 'POST',
+        body: JSON.stringify({
+          channels: Array.isArray(config.channels) ? config.channels : [],
+          discord_webhook: config.discord_webhook || '',
+          webhook_url: config.webhook_url || '',
+          email: config.email || '',
+          test: Boolean(config.test),
+        }),
+      });
+    },
+
+    async getProfile() {
+      return request('/api/profile');
+    },
+
+    async saveProfile(profile = {}) {
+      return request('/api/profile', {
+        method: 'POST',
+        body: JSON.stringify(profile),
+      });
+    },
+
+    async applyCandidate(candId, watchId) {
+      const qs = watchId ? `?watch_id=${encodeURIComponent(watchId)}` : '';
+      return request(`/api/candidates/${encodeURIComponent(candId)}/apply${qs}`, {
+        method: 'POST',
+      });
     },
 
     async triggerPipeline(candId) {
@@ -192,6 +229,7 @@ function normalizeCandidate(candidate) {
     title: stringValue(candidate.title ?? candidate.name, 'Untitled opportunity'),
     source: stringValue(candidate.source ?? candidate.site, 'Unknown source'),
     url: stringValue(candidate.url),
+    thumbnail: stringValue(candidate.thumbnail ?? candidate.image ?? candidate.cover_url),
     location: stringValue(candidate.location),
     starts_at: stringValue(candidate.starts_at ?? candidate.startsAt ?? candidate.date),
     status: stringValue(candidate.status),

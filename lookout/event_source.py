@@ -20,6 +20,40 @@ class EventSource(Protocol):
     def snapshot(self) -> list[dict]: ...
 
 
+class MultiEventSource:
+    """Fan several site-specific sources into one pool (e.g. Luma + Devpost)."""
+
+    def __init__(self, sources: list) -> None:
+        self.sources = [s for s in sources if s is not None]
+
+    def poll(self) -> list[dict]:
+        batch: list[dict] = []
+        for source in self.sources:
+            try:
+                batch.extend(source.poll())
+            except Exception as exc:  # never let one source crash the scout loop
+                print(f"[multi] poll failed for {type(source).__name__}: {exc!r}")
+        return batch
+
+    def snapshot(self) -> list[dict]:
+        events: list[dict] = []
+        seen: set[str] = set()
+        for source in self.sources:
+            try:
+                items = source.snapshot()
+            except Exception as exc:
+                print(f"[multi] snapshot failed for {type(source).__name__}: {exc!r}")
+                continue
+            for event in items:
+                eid = str(event.get("id") or event.get("url") or "")
+                if eid and eid in seen:
+                    continue
+                if eid:
+                    seen.add(eid)
+                events.append(event)
+        return events
+
+
 class SeedEventSource:
     def __init__(self, path: Path, batch_size: int = 3) -> None:
         self.path = path

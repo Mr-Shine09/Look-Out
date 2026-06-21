@@ -42,3 +42,6 @@ data/scraped_events.json
 
 # Local Netlify folder
 .netlify
+
+data/devpost_events.json
+data/searched_events.json
