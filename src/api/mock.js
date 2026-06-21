@@ -181,6 +181,25 @@ export function createMockApi() {
       .map((c) => ({ ...c, criteria: [...(c.criteria || [])] }));
   }
 
+  async function updateSpec(watchId, spec = {}) {
+    await tick(120);
+    const watch = watches.find((w) => w.id === watchId);
+    if (watch) {
+      watch.spec = {
+        must_match: [...(spec.must_match || [])],
+        reject_cases: [...(spec.reject_cases || [])],
+      };
+      watch.status = 'watching';
+      bus.emit({
+        type: 'spec_ready',
+        watch_id: watchId,
+        must_match: watch.spec.must_match,
+        reject_cases: watch.spec.reject_cases,
+      });
+    }
+    return { id: watchId, ...(watch || {}) };
+  }
+
   // ---- Pipeline (V3) ----------------------------------------------------
   function triggerPipeline(candId) {
     const cand = candidates.get(candId);
@@ -260,6 +279,7 @@ export function createMockApi() {
     sendFeedback,
     getCurve,
     getCandidates,
+    updateSpec,
     triggerPipeline,
     injectLiveFire,
     start,

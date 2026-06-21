@@ -80,6 +80,16 @@ export function createRealApi(baseUrl = '') {
       return asArray(await request(`/api/candidates${qs}`)).map(normalizeCandidate);
     },
 
+    async updateSpec(watchId, spec = {}) {
+      return normalizeWatch(await request(`/api/watches/${encodeURIComponent(watchId)}/spec`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          must_match: normalizeStringList(spec.must_match),
+          reject_cases: normalizeStringList(spec.reject_cases),
+        }),
+      }));
+    },
+
     async getCurve() {
       return asArray(await request('/api/curve')).map(normalizeCurvePoint);
     },

@@ -13,7 +13,7 @@ from .scrape_source import ScrapeEventSource
 from .judge import SpecAndFitJudge
 from .learning import LearningService
 from .redis_store import RedisStore
-from .schemas import FeedbackCreate, WatchCreate
+from .schemas import FeedbackCreate, SpecUpdate, WatchCreate
 from .settings import get_settings
 from .tracing import setup_sentry, setup_tracing
 from .websocket import FeedHub
@@ -110,6 +110,23 @@ async def create_watch(payload: WatchCreate, response: Response) -> dict[str, An
     asyncio.create_task(engine().compile_watch(watch_id))
     response.status_code = 202
     return {"accepted": True, "watch_id": watch_id}
+
+
+@app.patch("/api/watches/{watch_id}/spec")
+async def update_watch_spec(watch_id: str, payload: SpecUpdate) -> dict[str, Any]:
+    try:
+        watch = engine().update_spec(watch_id, payload.must_match, payload.reject_cases)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="watch not found")
+    await app.state.feed.broadcast(
+        {
+            "type": "spec_ready",
+            "watch_id": watch_id,
+            "must_match": watch["spec"]["must_match"],
+            "reject_cases": watch["spec"]["reject_cases"],
+        }
+    )
+    return watch
 
 
 @app.post("/api/candidates/{candidate_id}/feedback")

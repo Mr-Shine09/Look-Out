@@ -10,3 +10,8 @@ class WatchCreate(BaseModel):
 class FeedbackCreate(BaseModel):
     label: Literal["relevant", "not_relevant"]
     watch_id: str | None = None
+
+
+class SpecUpdate(BaseModel):
+    must_match: list[str] = Field(default_factory=list)
+    reject_cases: list[str] = Field(default_factory=list)

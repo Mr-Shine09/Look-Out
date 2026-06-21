@@ -262,6 +262,21 @@ class LookoutEngine:
             except Exception as exc:
                 print(f"[backfill] {watch_id} event failed: {exc!r}")
 
+    def update_spec(
+        self, watch_id: str, must_match: list[str], reject_cases: list[str]
+    ) -> dict[str, Any]:
+        if not self.get_watch(watch_id):
+            raise KeyError(watch_id)
+        self.redis.hset(
+            self.watch_key(watch_id),
+            mapping={
+                "must_match": json_dumps([str(m) for m in must_match]),
+                "reject_cases": json_dumps([str(r) for r in reject_cases]),
+                "status": "watching",
+            },
+        )
+        return self.get_watch(watch_id)
+
     def get_watches(self) -> list[dict[str, Any]]:
         watches: list[dict[str, Any]] = []
         for key in self.redis.scan_iter(match="watch:*:spec"):
