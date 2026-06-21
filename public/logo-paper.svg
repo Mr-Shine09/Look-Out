@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="Lookout">
+  <title>Lookout</title>
+  <!-- Eye mark on warm-paper tile (slides / README / social) -->
+  <rect x="0" y="0" width="120" height="120" rx="24" fill="#fbf8f2" />
+  <g transform="translate(28 28)" fill="none" stroke="#141413" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 32 C18 16 46 16 56 31 C47 46 18 47 6.5 30.5" />
+    <ellipse cx="32" cy="32" rx="9.6" ry="9" />
+  </g>
+  <circle cx="60" cy="60" r="3.4" fill="#141413" />
+</svg>

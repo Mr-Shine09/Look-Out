@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Lookout eye mark">
+  <title>Lookout</title>
+  <!-- Standalone eye mark (app icon) — warm black ink, hand-drawn -->
+  <g fill="none" stroke="#141413" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 32 C18 16 46 16 56 31 C47 46 18 47 6.5 30.5" />
+    <ellipse cx="32" cy="32" rx="9.6" ry="9" />
+  </g>
+  <circle cx="32" cy="32" r="3.4" fill="#141413" />
+</svg>
