@@ -17,6 +17,7 @@ class Settings:
     semantic_duplicate_distance: float
     embedding_model: str
     cors_origins: list[str]
+    cors_origin_regex: str | None
     seed_default_watch: bool
     event_source: str
     scrape_sources: list[str]
@@ -40,6 +41,12 @@ def get_settings() -> Settings:
         semantic_duplicate_distance=float(os.getenv("LOOKOUT_DUP_DISTANCE", "0.08")),
         embedding_model=os.getenv("LOOKOUT_EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
         cors_origins=[origin.strip() for origin in cors.split(",") if origin.strip()],
+        # Allow any localhost/127.0.0.1 port by default so the dev frontend AND the
+        # IDE browser-preview proxy (random 127.0.0.1:5xxxx origin) are never CORS-blocked.
+        cors_origin_regex=os.getenv(
+            "LOOKOUT_CORS_ORIGIN_REGEX", r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+        )
+        or None,
         seed_default_watch=os.getenv("LOOKOUT_SEED_DEFAULT_WATCH", "1") != "0",
         event_source=os.getenv("LOOKOUT_EVENT_SOURCE", "seed").lower(),
         scrape_sources=[s.strip() for s in scrape_sources.split(",") if s.strip()],

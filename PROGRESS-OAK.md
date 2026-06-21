@@ -59,10 +59,10 @@ Last updated: 2026-06-21
 docker run -d -p 6006:6006 --name phoenix arizephoenix/phoenix:latest   # Phoenix
 # Redis Stack on :6379 (local) must be running
 
-# 1. Backend — real Luma data via Browserbase, permissive CORS for local dev
+# 1. Backend — real Luma data via Browserbase (CORS now allows any localhost
+#    origin by default, including the IDE preview proxy — no override needed)
 set -a; . ./.env; set +a
 REDIS_URL=redis://localhost:6379 \
-LOOKOUT_CORS_ORIGINS='*' \
 LOOKOUT_EVENT_SOURCE=scrape \
 LOOKOUT_USE_BROWSERBASE=1 \
 LOOKOUT_POLL_SECONDS=3600 \
@@ -88,10 +88,22 @@ To use the **direct-fetch** path instead of Browserbase (zero quota), drop `LOOK
 | # | Item | Owner | Notes |
 |---|------|-------|-------|
 | 1 | **Public deploy** | Oak | Managed one-click deploy hit a provider **outage**. Finish via: `npx netlify-cli deploy --dir=dist --prod` in a real terminal (interactive login + create-site). `dist/` already built (mock mode); `netlify.toml` in place. |
-| 2 | **Persist CORS for dev** | Oak + Bruce | Decide: keep `LOOKOUT_CORS_ORIGINS='*'` in the run command, or relax the code default (e.g. `allow_origin_regex` for `127.0.0.1:*` in dev). Currently runtime-only. |
+| 2 | ~~**Persist CORS for dev**~~ ✅ DONE | Oak | Fixed in code: `settings.cors_origin_regex` (default `https?://(localhost|127.0.0.1)(:\d+)?`) wired into the CORS middleware in `app.py`. Any localhost port — including the IDE preview proxy — is allowed without `'*'`. Override via `LOOKOUT_CORS_ORIGIN_REGEX`. |
 | 3 | **Spec human-in-the-loop edit** | Harrison + Bruce | Backend already splits create→compile; needs `PATCH /api/watches/{id}/spec` + "Confirm" gating, and editable chips in the UI (don't show spec until "Compile," lock on confirm). |
 | 4 | **Tune match rate on real data** | Bruce | Judge is strict; most Luma SF events (parties/networking) reject. Add sources (`lu.ma/ai`, city pages) and/or loosen specs so more real events accept in the demo. |
 | 5 | **Merge** | Oak | Merge order: `feat/luma-scrape-source` stacks on `feat/infra-tracing`. Touches `app.py`/`settings.py` (Bruce) + `src/api/index.js`/`vite.config.js` (Harrison) — coordinate before merging to `main`. |
+
+---
+
+## 3b. Infra verification status (agenda Definition of Done)
+
+- ✅ **`verify.py` gate** restored to this branch + **Sentry check added**; Browserbase check is
+  now opt-in (`VERIFY_BROWSERBASE=1`) to protect the 60-min/mo quota. Green with local Redis:
+  `REDIS_URL=redis://localhost:6379 ./venv-backend/bin/python verify.py` → Claude/Redis/Phoenix/Sentry PASS, Browserbase SKIP.
+- ✅ **Phoenix tracing active** (`[tracing] Phoenix tracing active -> http://localhost:6006`); agent spans emit on scout/judge/pipeline.
+- ✅ **Sentry capturing backend errors** — confirmed via `GET /api/debug/error` (error flows through the Sentry FastAPI integration).
+- ⚠️ **Curve is flat (0.33), not yet falling.** The falling-precision proof needs feedback: accept candidates, then mark a few `not_relevant` → `recompute_curve` lowers the rate. Exercise this during the demo (or seed feedback).
+- ⚠️ **`.env` `REDIS_URL` points at Redis Cloud** (times out on venue WiFi + lacks the Search module). The demo runs on **local Redis Stack** (`redis://localhost:6379`). Keep using the local override for verify + backend.
 
 ---
 
