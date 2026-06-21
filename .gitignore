@@ -9,6 +9,7 @@ dist-ssr/
 .env
 .env.local
 *.local
+.venv/
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
@@ -19,3 +20,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

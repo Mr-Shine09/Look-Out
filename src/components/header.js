@@ -12,7 +12,6 @@ export function Header() {
     ]),
     el('div', { class: 'spacer' }),
     el('div', { class: 'status-pill' }, [
-      el('span', { class: 'dot' }),
       el('span', { text: 'watching live' }),
     ]),
   ]);
