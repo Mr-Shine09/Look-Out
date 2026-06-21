@@ -1,7 +1,11 @@
 # PROGRESS — Oak (Real Data + Browserbase + Deploy)
 
 Branch: `feat/luma-scrape-source` (stacked on `feat/infra-tracing`)
-Last updated: 2026-06-21
+Last updated: 2026-06-21 06:08 PT (Session 2)
+
+> **Read SESSION 2 first** (below) for the latest state: core bug fixes, spec-edit API,
+> and the Search -> Stay -> Report UX redesign. Sections 1-5 are the earlier real-data/
+> Browserbase session and remain accurate for the scraper.
 
 > This session added **real event data** to Lookout via a Luma scraper (Browserbase +
 > `requests` fallback), an **env-driven mock/real frontend seam**, a **mock-mode static
@@ -10,7 +14,114 @@ Last updated: 2026-06-21
 
 ---
 
-## 1. What's done this session
+## SESSION 2 (Jun 21, ~06:00 PT) — core bug fixes, spec-edit API, UX redesign
+
+All work is on branch `feat/luma-scrape-source`, pushed to origin. Backend untouched in spirit
+(each topic is still a watch/spec with Redis vector dedup under the hood).
+
+### A. Core bug fixes + grounded pipeline — commit `263df0f`
+- **BUG-1 (curve didn't fall cleanly):** `get_curve(watch_id)` now returns a single watch's
+  series (default = most-accepted "primary" watch); `feedback`/`find_candidate` are watch-aware
+  (prefer the accepted, non-duplicate copy; accept an explicit `watch_id`). Verified: feedback
+  holds at 0.198, no cross-watch bounce back to 0.33.
+- **BUG-2 (board emptied on refresh):** added `GET /api/candidates` + `engine.list_candidates()`;
+  frontend hydrates on load. Verified: 16 candidates rehydrate.
+- **BUG-3 (new watch saw nothing / global cursor):** `source.snapshot()` + `engine.backfill_watch()`
+  run on watch compile, so a new watch evaluates the known event pool immediately (capped to bound
+  Claude cost).
+- **Pipeline:** act-pipeline snippets now grounded in the real candidate's title/location/source/spec.
+
+### B. Human-in-the-loop spec editing — commit `a4a95de`
+- `PATCH /api/watches/{id}/spec` -> `engine.update_spec()` rewrites must_match/reject_cases and
+  sets status=watching; rebroadcasts `spec_ready`. `real.js` + `mock.js` expose `updateSpec(watchId, spec)`.
+- Verified: PATCH round-trip returns the updated watch.
+
+### C. Front-end redesign: Search -> Stay -> Report — commit `f8bde7e`
+Replaces the dense single-screen dashboard. ONE PAGE = ONE PURPOSE.
+- `src/lib/router.js` (NEW): tiny hash router, one page visible at a time.
+- `src/components/searchPage.js` (NEW): search bar + filter checkboxes (Where/When/Type) that refine
+  the compiled query and keep the backend scoped; curated **example test cases** below. Research
+  grants demoted to one optional example (off by default), not a co-equal lane.
+- `src/components/stayPage.js` (NEW): suppression-engine framing — stat tiles (surfaced / duplicates
+  silenced / off-topic filtered / total seen) + "show what it silenced" toggle. Reuses `CandidateCard`
+  + `Pipeline`.
+- `src/components/reportPage.js` (NEW): choose delivery channels (dashboard/email/Slack/webhook).
+- `src/components/header.js`: now a Search/Stay/Report step nav; copy = "built to notify you less."
+- `src/styles/pages.css` (NEW): on-brand with existing dark tokens (NEUTRAL first pass — awaiting
+  Oak's visual references).
+- `src/main.js`: orchestrates the three pages via the router; `scope {watchId,title}` carries the
+  active topic across pages; example with a `watchId` reuses a seeded feed (instant, no tokens),
+  typed query compiles a fresh feed.
+- Old components (`board.js`, `lane.js`, `watchCreator.js`, `precisionCurve.js`) are **dormant**
+  (no longer imported) but left in place.
+- Build verified clean (19 modules).
+
+### D. Open follow-ups from Session 2
+- **Demo-data mapping:** in mock mode the demo looks great (seed has surfaced items). In LIVE mode,
+  the "events near me" example maps to watch `w_ml_hack`, whose current Redis data is mostly
+  *silenced* — good for showing suppression, but if we want guaranteed surfaced cards we should map
+  the example to the watch that has accepted candidates, or seed one. Oak to provide the few demo
+  test cases; then wire the example->watchId mappings exactly.
+- **Visual styling:** `pages.css` is a neutral pass; refine once Oak shares UI/UX references.
+
+---
+
+## MEMORY EXPORT (for syncing with a teammate)
+
+These are the persistent memories I'm working from. Share this block so we stay aligned.
+
+**Memory 1 — Lookout pitch & positioning (suppression engine)**
+- Lookout = a SUPPRESSION ENGINE, not a watcher. Category claim: "Every alert tool is built to
+  notify you MORE. Lookout is the first built to notify you LESS." It remembers what it already told
+  you and stays quiet; gets quieter & sharper the longer it runs.
+- For every detected change it asks two questions: (1) have I effectively shown this to you before?
+  (semantic duplicate), and (2) does it actually matter? It only alerts when BOTH clear the bar.
+- Redis (RediSearch) IS the suppression engine: every alert stored as a vector; hybrid KNN checks
+  new candidates against alert history for semantic duplicates. Core product, not caching.
+- Anthropic API: embeddings + relevance judging. Browserbase: web-watching/fetch. WebSocket: pushes
+  surviving alerts in real time. Sentry: observability/error monitoring.
+- The tunable semantic-similarity threshold for dedup IS the product (too loose = Google Alerts;
+  too tight = miss real updates). What's next: per-user feedback to tune a personal threshold;
+  extend to any changing source (status pages, filings, restocks, Reddit/Discord/APIs).
+- Preferred elevator pitch (#1): "Every alert tool is built to notify you more. Lookout is the first
+  built to notify you less."
+
+**Memory 2 — UX direction: Search + Stay + Report**
+- Core idea = SEARCH + STAY + REPORT. ONE PAGE = ONE PURPOSE (multi-page/step flow; clean, minimal,
+  search-first).
+- SEARCH (front door): prominent search bar to type the exact thing to watch; filter
+  options/checkboxes narrow scope (and constrain the backend to avoid random noise). Below: examples
+  / suggested test cases of what Lookout can do. For the DEMO use only a few curated test cases that
+  map to existing watches.
+- STAY: Lookout watches continuously and SUPPRESSES noise; show surviving alerts + how much was
+  suppressed; gets quieter over time.
+- REPORT: let the user route results to themselves via different channels (dashboard, email, etc.).
+- "Research grants" must NOT be a co-equal default lane — it's one optional example; default surfaced
+  thing is "new events near me." Build structure/flow first with neutral styling; refine visuals when
+  Oak's references arrive. Backend (watch/spec/Redis dedup) stays intact under the hood.
+
+> Note: "subDevin" — this IDE has no separate parallel agent to spawn. The closest is a Fast Context
+> search subagent used for codebase exploration; all track work is driven directly.
+
+---
+
+## PARALLEL-WORK GUIDE (so two people don't collide)
+
+Current running state (Oak's laptop): backend on `:8000` (real Luma scrape, Browserbase on, local
+Redis, Phoenix+Sentry), frontend on `:5173` (`VITE_USE_REAL_BACKEND=true VITE_API_BASE=http://127.0.0.1:8000`).
+Relaunch commands are in `OAK-STANDING-ORDERS.md`.
+
+- **Frontend / UX (safe to own):** `src/components/searchPage.js`, `stayPage.js`, `reportPage.js`,
+  `src/styles/pages.css`, `src/lib/router.js`, `src/components/header.js`. Visual polish + demo copy.
+- **Backend / data (safe to own):** `lookout/engine.py`, `app.py`, `judge.py`, `scrape_source.py`,
+  demo-data seeding + example->watchId mappings, match-rate tuning.
+- **Shared seam — coordinate before editing:** `src/main.js` (page orchestration + filter->query
+  mapping) and `src/api/{real,mock}.js` (the API contract; keep mock and real in parity).
+- Pull `feat/luma-scrape-source` before starting; commit small and push often.
+
+---
+
+## 1. What's done this session (Session 1 — real data + Browserbase)
 
 ### Real event source — `lookout/scrape_source.py` (NEW)
 - `ScrapeEventSource` implements the same `poll()` contract as `SeedEventSource` (drop-in).
