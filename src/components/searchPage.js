@@ -324,10 +324,10 @@ export function SearchPage({ onFollow }) {
   const node = el('section', { class: 'page page-search', hidden: true }, [
     el('div', { class: 'search-hero' }, [
       el('p', { class: 'eyebrow', text: 'Search' }),
-      el('h1', { class: 'hero-title head', text: 'Built to talk less.' }),
+      el('h1', { class: 'hero-title head', text: 'Get alerted only when it matters.' }),
       el('p', {
         class: 'hero-sub',
-        text: 'Every other alert tool is built to ping you more. Lookout is the first one optimized to stay quiet — it remembers what it has already told you, and only speaks when something is genuinely new and genuinely matters.',
+        text: 'Tell Lookout what to watch. It filters duplicates, stale updates, and off-topic noise — then notifies you only when something new, relevant, and worth acting on appears.',
       }),
       el('div', { class: 'search-bar' }, [input, submit]),
       el('div', { class: 'adv-panel' }, [advancedToggle, advancedBody]),

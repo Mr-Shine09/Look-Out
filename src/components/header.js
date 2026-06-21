@@ -29,7 +29,7 @@ export function Header({ onNavigate } = {}) {
   const node = el('header', { class: 'app-header' }, [
     el('button', { class: 'brand', type: 'button', onClick: () => onNavigate?.('search') }, [
       el('div', { class: 'logo' }, ['Look', el('span', { class: 'eye', text: 'out' })]),
-      el('div', { class: 'tagline', text: '// built to notify you less' }),
+      el('div', { class: 'tagline', text: '// alerts only when it matters' }),
     ]),
     el('div', { class: 'spacer' }),
     nav,

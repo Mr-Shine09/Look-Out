@@ -1471,6 +1471,52 @@
   border-color: rgba(255, 138, 91, 0.28);
   background: rgba(255, 138, 91, 0.1);
 }
+.app-nav .nav-step {
+  color: rgba(23, 25, 31, 0.76);
+}
+.app-nav .nav-step:hover,
+.app-nav .nav-step--active {
+  color: #17191f;
+}
+.search-input,
+.adv-input,
+.adv-select,
+.kw-input,
+.chip,
+.kw-chip {
+  color: #17191f;
+}
+.search-input::placeholder,
+.adv-input::placeholder,
+.kw-input::placeholder {
+  color: rgba(23, 25, 31, 0.48);
+}
+.adv-toggle,
+.adv-label,
+.adv-check-row,
+.adv-hint,
+.adv-range-out {
+  color: rgba(23, 25, 31, 0.72);
+}
+.adv-label {
+  color: rgba(23, 25, 31, 0.62);
+}
+.adv-toggle:hover,
+.adv-toggle--open,
+.adv-toggle-caret,
+.chip--on .chip-check {
+  color: var(--scan-deep);
+}
+.kw-chip--off,
+.kw-chip--off .kw-x {
+  color: rgba(23, 25, 31, 0.68);
+}
+.search-go,
+.search-go:hover,
+.search-go:focus,
+.search-go .search-go-arrow {
+  color: #ffffff;
+}
 @media (max-width: 760px) {
   .search-bar {
     border-radius: 28px;

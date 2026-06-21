@@ -37,13 +37,14 @@
   font-size: 34px;
   line-height: 0.92;
   letter-spacing: -0.05em;
+  color: #17191f;
 }
 .app-header .logo .eye {
   color: var(--scan);
   font-style: italic;
 }
 .app-header .tagline {
-  color: var(--text-faint);
+  color: rgba(23, 25, 31, 0.72);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -67,7 +68,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--text-dim);
+  color: rgba(23, 25, 31, 0.78);
   padding: 8px 14px;
   border: 1px solid rgba(255, 255, 255, 0.58);
   border-radius: 999px;
