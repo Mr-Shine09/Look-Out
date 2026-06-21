@@ -1,15 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="280" height="96" viewBox="0 0 280 96" role="img" aria-label="Lookout">
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="Lookout">
   <title>Lookout</title>
-  <!-- Warm-paper tile for slides / README / social -->
-  <rect x="0" y="0" width="280" height="96" rx="20" fill="#fbf8f2" />
-  <!-- Eye mark -->
-  <g transform="translate(28 24)" fill="none" stroke="#5b8def" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M5 24 C12 13 36 13 43 24 C36 35 12 35 5 24 Z" />
-    <circle cx="24" cy="24" r="8.4" />
+  <!-- Eye mark on warm-paper tile (slides / README / social) -->
+  <rect x="0" y="0" width="120" height="120" rx="24" fill="#fbf8f2" />
+  <g transform="translate(28 28)" fill="none" stroke="#141413" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 32 C18 16 46 16 56 31 C47 46 18 47 6.5 30.5" />
+    <ellipse cx="32" cy="32" rx="9.6" ry="9" />
   </g>
-  <circle cx="52" cy="48" r="3.6" fill="#ff8a5b" />
-  <!-- Wordmark -->
-  <text x="90" y="58" font-family="Fraunces, Georgia, 'Times New Roman', serif" font-size="33" font-weight="700" letter-spacing="-1.5">
-    <tspan fill="#17191f">Look</tspan><tspan fill="#5b8def" font-style="italic">out</tspan>
-  </text>
+  <circle cx="60" cy="60" r="3.4" fill="#141413" />
 </svg>

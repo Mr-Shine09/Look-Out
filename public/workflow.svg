@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="716" viewBox="0 0 1320 716" font-family="'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" role="img" aria-label="Lookout product workflow: input, tech stack, output">
+  <title>Lookout — how it works</title>
+  <defs>
+    <marker id="arrowInk" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 Z" fill="#141413"/></marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 Z" fill="#2f5fd0"/></marker>
+    <marker id="arrowGrey" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0 0 L7 3 L0 6 Z" fill="#a6abb5"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1320" height="716" fill="#fbf8f2"/>
+
+  <!-- Title -->
+  <text x="44" y="52" font-family="Georgia, 'Times New Roman', serif" font-size="24" font-weight="700" fill="#141413">Lookout — how it works</text>
+  <text x="44" y="78" font-size="13.5" fill="#5d626c">Input  →  a Redis suppression engine that remembers what it already showed you  →  only what matters, out.</text>
+
+  <!-- Zone dividers + labels -->
+  <line x1="300" y1="98" x2="300" y2="586" stroke="#e3dccd" stroke-width="1.5" stroke-dasharray="3 5"/>
+  <line x1="1115" y1="98" x2="1115" y2="586" stroke="#e3dccd" stroke-width="1.5" stroke-dasharray="3 5"/>
+  <text x="170" y="116" text-anchor="middle" font-size="12" letter-spacing="2.5" fill="#969ba6">INPUT</text>
+  <text x="707" y="116" text-anchor="middle" font-size="12" letter-spacing="2.5" fill="#969ba6">HOW IT WORKS  ·  TECH STACK</text>
+  <text x="1205" y="116" text-anchor="middle" font-size="12" letter-spacing="2.5" fill="#969ba6">OUTPUT</text>
+
+  <!-- ===== Arrows (drawn first so cards sit on top) ===== -->
+  <path d="M276 300 C 312 300 312 198 338 195" fill="none" stroke="#141413" stroke-width="1.8" marker-end="url(#arrowInk)"/>
+  <path d="M552 198 C 576 206 580 232 590 250" fill="none" stroke="#2f5fd0" stroke-width="1.8" stroke-dasharray="4 4" marker-end="url(#arrowBlue)"/>
+  <path d="M552 432 C 576 432 580 410 590 400" fill="none" stroke="#141413" stroke-width="1.8" marker-end="url(#arrowInk)"/>
+  <path d="M446 500 C 520 488 560 480 610 472" fill="none" stroke="#141413" stroke-width="1.8" marker-end="url(#arrowInk)"/>
+  <path d="M760 476 L 765 518" fill="none" stroke="#a6abb5" stroke-width="1.8" stroke-dasharray="4 4" marker-end="url(#arrowGrey)"/>
+  <path d="M882 314 L 920 314" fill="none" stroke="#141413" stroke-width="1.8" marker-end="url(#arrowInk)"/>
+  <path d="M1100 292 C 1116 252 1120 224 1133 210" fill="none" stroke="#141413" stroke-width="1.8" marker-end="url(#arrowInk)"/>
+  <path d="M1100 314 L 1133 314" fill="none" stroke="#141413" stroke-width="1.8" marker-end="url(#arrowInk)"/>
+  <path d="M1100 336 C 1116 378 1120 404 1133 418" fill="none" stroke="#141413" stroke-width="1.8" marker-end="url(#arrowInk)"/>
+  <text x="566" y="206" font-size="9.5" fill="#2f5fd0">spec</text>
+  <text x="558" y="416" font-size="9.5" fill="#5d626c">candidates</text>
+  <text x="884" y="306" font-size="9.5" fill="#5d626c">survivors</text>
+
+  <!-- ===== INPUT ===== -->
+  <rect x="44" y="252" width="232" height="104" rx="14" fill="#ffffff" stroke="#e3dccd" stroke-width="1.5"/>
+  <text x="62" y="278" font-size="9" letter-spacing="1.5" fill="#2f5fd0">YOU</text>
+  <text x="62" y="300" font-size="14.5" font-weight="700" fill="#141413">Your watch</text>
+  <text x="62" y="321" font-size="11.5" font-style="italic" fill="#5d626c">"Alert me when a new in-person</text>
+  <text x="62" y="338" font-size="11.5" font-style="italic" fill="#5d626c">ML/AI hackathon opens near SF"</text>
+
+  <!-- ===== COMPILE (Claude) ===== -->
+  <rect x="340" y="150" width="212" height="88" rx="14" fill="#ffffff" stroke="#e3dccd" stroke-width="1.5"/>
+  <text x="358" y="174" font-size="9" letter-spacing="1.2" fill="#b8541f">ANTHROPIC · CLAUDE</text>
+  <text x="358" y="197" font-size="14" font-weight="700" fill="#141413">Compile to spec</text>
+  <text x="358" y="217" font-size="11" fill="#5d626c">must_match / reject_cases</text>
+
+  <!-- ===== SCOUT (Browserbase) ===== -->
+  <rect x="340" y="388" width="212" height="88" rx="14" fill="#ffffff" stroke="#e3dccd" stroke-width="1.5"/>
+  <text x="358" y="412" font-size="9" letter-spacing="1.2" fill="#2f5fd0">BROWSERBASE</text>
+  <text x="358" y="435" font-size="14" font-weight="700" fill="#141413">Scout the web  ⟳</text>
+  <text x="358" y="455" font-size="11" fill="#5d626c">fetch sources → candidates</text>
+
+  <!-- ===== ENGINE (Redis) ===== -->
+  <rect x="590" y="156" width="292" height="320" rx="18" fill="#5b8def" fill-opacity="0.07" stroke="#5b8def" stroke-width="2"/>
+  <text x="612" y="186" font-size="9.5" letter-spacing="1.2" fill="#d92d20">REDIS · REDISEARCH</text>
+  <text x="612" y="212" font-size="16.5" font-weight="700" fill="#141413">Suppression Engine</text>
+  <rect x="612" y="230" width="248" height="54" rx="10" fill="#ffffff" stroke="#e3dccd" stroke-width="1.3"/>
+  <text x="626" y="252" font-size="12.5" font-weight="700" fill="#141413">① Exact-seen SET</text>
+  <text x="626" y="270" font-size="10.5" fill="#5d626c">drop verbatim repeats</text>
+  <rect x="612" y="292" width="248" height="54" rx="10" fill="#ffffff" stroke="#e3dccd" stroke-width="1.3"/>
+  <text x="626" y="314" font-size="12.5" font-weight="700" fill="#141413">② Vector KNN · HNSW</text>
+  <text x="626" y="332" font-size="10.5" fill="#5d626c">silence semantic duplicates</text>
+  <rect x="612" y="354" width="248" height="54" rx="10" fill="#ffffff" stroke="#e3dccd" stroke-width="1.3"/>
+  <text x="626" y="376" font-size="12.5" font-weight="700" fill="#141413">③ Field diff</text>
+  <text x="626" y="394" font-size="10.5" fill="#5d626c">re-surface real changes</text>
+  <text x="612" y="438" font-size="10.5" font-style="italic" fill="#5d626c">memory grows → it gets quieter over time</text>
+
+  <!-- ===== EMBEDDINGS feeder ===== -->
+  <rect x="340" y="500" width="212" height="52" rx="12" fill="#ffffff" stroke="#e3dccd" stroke-width="1.5"/>
+  <text x="358" y="522" font-size="9" letter-spacing="1.2" fill="#5d626c">EMBEDDINGS</text>
+  <text x="358" y="540" font-size="11.5" fill="#141413">MiniLM → 384-d vectors</text>
+
+  <!-- ===== SILENCED (suppressed) ===== -->
+  <rect x="600" y="518" width="320" height="46" rx="12" fill="#f3eee4" stroke="#cfc8ba" stroke-width="1.3"/>
+  <text x="620" y="546" font-size="11.5" fill="#5d626c">✕  Duplicates silenced — you never see these</text>
+
+  <!-- ===== JUDGE (Claude) ===== -->
+  <rect x="920" y="250" width="180" height="128" rx="14" fill="#ffffff" stroke="#e3dccd" stroke-width="1.5"/>
+  <text x="938" y="276" font-size="9" letter-spacing="1.2" fill="#b8541f">ANTHROPIC · CLAUDE</text>
+  <text x="938" y="300" font-size="15" font-weight="700" fill="#141413">Judge</text>
+  <text x="938" y="320" font-size="11" font-style="italic" fill="#5d626c">"does this matter?"</text>
+  <text x="938" y="340" font-size="11" fill="#5d626c">+ learned bar</text>
+  <text x="938" y="356" font-size="10" fill="#969ba6">(scikit-learn)</text>
+
+  <!-- ===== OUTPUTS ===== -->
+  <rect x="1133" y="170" width="162" height="80" rx="14" fill="#ffffff" stroke="#f3b59a" stroke-width="1.6"/>
+  <text x="1151" y="192" font-size="9" letter-spacing="1.2" fill="#e5733a">WEBSOCKET</text>
+  <text x="1151" y="214" font-size="14" font-weight="700" fill="#141413">Dashboard</text>
+  <text x="1151" y="233" font-size="11" fill="#5d626c">surfaced alerts, live</text>
+
+  <rect x="1133" y="262" width="162" height="104" rx="14" fill="#ffffff" stroke="#f3b59a" stroke-width="1.6"/>
+  <text x="1151" y="284" font-size="9" letter-spacing="1.2" fill="#e5733a">AGENT PIPELINE</text>
+  <text x="1151" y="306" font-size="14" font-weight="700" fill="#141413">Act</text>
+  <text x="1151" y="325" font-size="10.5" fill="#5d626c">Scout → Judge →</text>
+  <text x="1151" y="340" font-size="10.5" fill="#5d626c">Strategist → Drafter</text>
+  <text x="1151" y="355" font-size="10.5" fill="#5d626c">→ Critic</text>
+
+  <rect x="1133" y="378" width="162" height="80" rx="14" fill="#ffffff" stroke="#f3b59a" stroke-width="1.6"/>
+  <text x="1151" y="400" font-size="9" letter-spacing="1.2" fill="#e5733a">NOTIFY</text>
+  <text x="1151" y="422" font-size="14" font-weight="700" fill="#141413">Channels</text>
+  <text x="1151" y="441" font-size="11" fill="#5d626c">webhook / Discord</text>
+
+  <!-- ===== OBSERVABILITY band ===== -->
+  <rect x="44" y="610" width="1251" height="84" rx="16" fill="#ffffff" stroke="#d9d2c4" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="670" y="636" text-anchor="middle" font-size="10.5" letter-spacing="2" fill="#969ba6">OBSERVABILITY  ·  ACROSS THE WHOLE PIPELINE</text>
+  <circle cx="92" cy="664" r="5" fill="#6a4bd6"/>
+  <text x="108" y="668" font-size="12.5" fill="#141413"><tspan font-weight="700">Phoenix</tspan> — traces every Claude call &amp; agent stage</text>
+  <circle cx="712" cy="664" r="5" fill="#e5484d"/>
+  <text x="728" y="668" font-size="12.5" fill="#141413"><tspan font-weight="700">Sentry</tspan> — backend error monitoring</text>
+</svg>

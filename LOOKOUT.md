@@ -211,6 +211,13 @@ python scripts/test_dedup.py # proves semantic suppression end-to-end
 
 ## Architecture at a glance
 
+<div align="center">
+  <img src="./public/workflow.svg" alt="Lookout workflow — input, tech stack, output" width="100%" />
+</div>
+
+<details>
+<summary>Text version of the diagram</summary>
+
 ```
                  ┌─────────────┐   plain English watch
    You  ─────────►   Search    │   "new ML hackathons near SF"
@@ -236,6 +243,8 @@ python scripts/test_dedup.py # proves semantic suppression end-to-end
 
    Phoenix traces every Claude call + agent stage · Sentry catches errors
 ```
+
+</details>
 
 ---
 
