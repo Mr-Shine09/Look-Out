@@ -20,9 +20,21 @@
 
 ## Blockers (need Oak) — keep updated
 - [ ] **Public deploy**: Netlify CLI needs interactive login in Oak's real terminal (`npx netlify-cli login` then deploy). Cannot be automated here.
-- [ ] **Merge to `main`**: repo is BennPhu/Look-Out; Oak has push, not admin. Confirm target branch + that Bruce/Harrison are clear before merging.
+- [ ] **Merge to `main`**: repo is BennPhu/Look-Out; Oak has push, not admin. Confirm target branch + that Bruce/Harrison are clear before merging. PR: https://github.com/BennPhu/Look-Out/pull/new/feat/luma-scrape-source
 - [ ] **Redis Cloud Search module**: sponsor/shared demo DB lacks RediSearch (`FT.CREATE` fails). Local Redis Stack is the workaround. Enable Search & Query on the Cloud DB for a non-laptop demo.
 - [ ] **.env `REDIS_URL`** points at Redis Cloud (times out on venue WiFi). Demo uses local `redis://localhost:6379`.
+
+## Running now (local demo)
+- Backend: `:8000` (real Luma scrape, Browserbase on, local Redis, Phoenix+Sentry active).
+- Frontend (real backend): `:5173` — started with `VITE_USE_REAL_BACKEND=true VITE_API_BASE=http://127.0.0.1:8000`.
+- Relaunch backend: `set -a; . ./.env; set +a; REDIS_URL=redis://localhost:6379 LOOKOUT_EVENT_SOURCE=scrape LOOKOUT_USE_BROWSERBASE=1 LOOKOUT_POLL_SECONDS=3600 LOOKOUT_EVENT_BATCH_SIZE=8 ./venv-backend/bin/uvicorn lookout.app:app --host 127.0.0.1 --port 8000`
+- Relaunch frontend: `VITE_USE_REAL_BACKEND=true VITE_API_BASE=http://127.0.0.1:8000 node_modules/.bin/vite --host 127.0.0.1 --port 5173 --strictPort`
+- Note: the PATCH test rewrote watch `w_1637c2abd2` spec to in-person/SF + reject online-only (sane demo values; recompile or PATCH to change).
+
+## Commits this session
+- `135ad19` infra: permanent CORS regex + verify.py restore (+Sentry check, Browserbase gated)
+- `263df0f` core: BUG-1 watch-aware curve/feedback, BUG-2 candidate backfill, BUG-3 new-watch backfill, grounded pipeline
+- `a4a95de` feat: human-in-the-loop spec editing (PATCH + adapters)
 
 ## Bug Log (symptom → root cause → fix → commit)
 
