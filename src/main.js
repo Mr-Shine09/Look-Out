@@ -39,8 +39,9 @@ const app = document.getElementById('app');
 app.append(
   Header(),
   el('main', { class: 'app-main' }, [
-    el('div', { class: 'col-left' }, [watchCreator.node, curve.node]),
+    el('div', { class: 'col-left' }, [watchCreator.node]),
     el('div', { class: 'col-right' }, [board.node, pipeline.node]),
+    el('div', { class: 'col-full' }, [curve.node]),
   ])
 );
 

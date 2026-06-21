@@ -5,9 +5,9 @@ import { el, svgEl, clear } from '../lib/dom.js';
  * down as the model learns. Hand-rolled SVG (no charting lib), built bold and
  * simple so it reads from a few feet away on a projector.
  */
-const VB_W = 600;
-const VB_H = 180;
-const PAD = { top: 16, right: 16, bottom: 26, left: 40 };
+const VB_W = 820;
+const VB_H = 260;
+const PAD = { top: 24, right: 26, bottom: 34, left: 52 };
 
 export function PrecisionCurve() {
   let points = []; // [{ timestamp, false_alarm_rate }]
@@ -18,14 +18,14 @@ export function PrecisionCurve() {
   const svg = svgEl('svg', {
     class: 'curve-svg',
     viewBox: `0 0 ${VB_W} ${VB_H}`,
-    preserveAspectRatio: 'none',
+    preserveAspectRatio: 'xMidYMid meet',
   });
 
   // Gradient def for the area fill.
   const defs = svgEl('defs');
   const grad = svgEl('linearGradient', { id: 'curveGrad', x1: '0', y1: '0', x2: '0', y2: '1' });
-  grad.append(svgEl('stop', { offset: '0%', 'stop-color': '#34d9c8', 'stop-opacity': '0.28' }));
-  grad.append(svgEl('stop', { offset: '100%', 'stop-color': '#34d9c8', 'stop-opacity': '0' }));
+  grad.append(svgEl('stop', { offset: '0%', 'stop-color': '#c5ff4a', 'stop-opacity': '0.22' }));
+  grad.append(svgEl('stop', { offset: '100%', 'stop-color': '#c5ff4a', 'stop-opacity': '0' }));
   defs.append(grad);
   svg.append(defs);
 
@@ -107,12 +107,14 @@ export function PrecisionCurve() {
 
   render();
 
+  const chartWrap = el('div', { class: 'curve-plot' }, [svg]);
+
   const node = el('section', { class: 'panel curve-card' }, [
     el('div', { class: 'curve-head' }, [
       el('h2', { class: 'section-title', text: 'Precision curve — false-alarm rate' }),
       el('div', { class: 'curve-current' }, [valEl, trendEl]),
     ]),
-    svg,
+    chartWrap,
   ]);
 
   return { node, setPoints, addPoint };

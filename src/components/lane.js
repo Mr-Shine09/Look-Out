@@ -8,8 +8,10 @@ const IDLE_MS = 8000; // after this with no new candidate, show honest idle stat
  * tracks accept/reject counts, and shows an honest "watching… nothing new yet"
  * state when idle (intentional, not a broken-empty placeholder).
  */
-export function Lane(watch, handlers) {
+export function Lane(watch, handlers = {}) {
   const counts = { accepted: 0, rejected: 0 };
+  const cards = new Map();
+  let sequence = 0;
 
   const countEl = el('div', { class: 'lane-count' }, [
     el('span', { class: 'acc', text: '0 match' }),
@@ -42,25 +44,65 @@ export function Lane(watch, handlers) {
   }
 
   function updateCounts() {
+    counts.accepted = 0;
+    counts.rejected = 0;
+    for (const record of cards.values()) {
+      if (record.cand.judgment === 'accepted') counts.accepted += 1;
+      else counts.rejected += 1;
+    }
     countEl.firstChild.textContent = `${counts.accepted} match`;
     countEl.lastChild.textContent = `${counts.rejected} rej`;
   }
 
-  function addCandidate(cand) {
+  function cardPriority(record) {
+    if (record.label === 'relevant') return 0;
+    if (record.cand.judgment === 'accepted' && record.label !== 'not_relevant') return 1;
+    if (record.label === 'not_relevant') return 2;
+    return 3;
+  }
+
+  function renderCards() {
+    [...cards.values()]
+      .sort((a, b) => cardPriority(a) - cardPriority(b) || b.order - a.order)
+      .forEach((record) => feed.append(record.node));
+  }
+
+  function handlersFor(cand) {
+    return {
+      ...handlers,
+      onFeedback: (candId, label) => {
+        const record = cards.get(candId);
+        if (record) {
+          record.label = label;
+          record.cand.label = label;
+          record.node.dataset.feedback = label;
+          renderCards();
+        }
+        return handlers.onFeedback?.(candId, label);
+      },
+    };
+  }
+
+  function addCandidate(nextCand) {
     // Clear the initial/idle empty states once real data flows.
     feed.querySelectorAll('.lane-empty').forEach((n) => n.remove());
 
-    if (cand.judgment === 'accepted') counts.accepted += 1;
-    else counts.rejected += 1;
-    updateCounts();
+    const cand = { ...nextCand, id: nextCand.id || `c_${Date.now()}_${sequence}` };
+    const existing = cards.get(cand.id);
+    const label = cand.label ?? existing?.label ?? null;
+    cand.label = label;
+    const node = CandidateCard(cand, handlersFor(cand));
+    const record = { cand, node, label, order: ++sequence };
 
-    feed.prepend(CandidateCard(cand, handlers));
+    if (existing) existing.node.replaceWith(node);
+    cards.set(cand.id, record);
+    updateCounts();
+    renderCards();
     armIdle();
   }
 
   const node = el('section', { class: 'lane' }, [
     el('div', { class: 'lane-head' }, [
-      el('span', { class: 'lane-dot' }),
       el('span', { class: 'lane-name', title: watch.query_text, text: laneTitle(watch) }),
       countEl,
     ]),

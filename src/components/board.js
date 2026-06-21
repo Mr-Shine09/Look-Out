@@ -18,6 +18,8 @@ export function Board({ handlers }) {
   }
 
   function routeCandidate(cand) {
+    if (!cand.watch_id) return;
+    if (!lanes.has(cand.watch_id)) addWatch({ id: cand.watch_id, query_text: cand.watch_id, status: 'watching' });
     const lane = lanes.get(cand.watch_id);
     if (lane) lane.addCandidate(cand);
   }

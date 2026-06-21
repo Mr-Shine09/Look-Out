@@ -4,32 +4,37 @@
 .app-header {
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 14px 24px;
+  gap: 20px;
+  padding: 20px 28px;
   border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(18, 27, 37, 0.6), transparent);
+  background: rgba(9, 9, 9, 0.82);
   position: sticky;
   top: 0;
   z-index: 20;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(18px);
 }
 .app-header .brand {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: flex-end;
+  gap: 14px;
 }
 .app-header .logo {
   font-family: var(--font-head);
   font-weight: 800;
-  font-size: 20px;
-  letter-spacing: -0.02em;
+  font-size: 36px;
+  line-height: 0.92;
+  letter-spacing: -0.06em;
 }
 .app-header .logo .eye {
   color: var(--scan);
+  font-style: italic;
 }
 .app-header .tagline {
   color: var(--text-faint);
   font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   font-family: var(--font-mono);
 }
 .app-header .spacer {
@@ -41,67 +46,55 @@
   gap: 8px;
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--text-dim);
-  padding: 5px 12px;
-  border: 1px solid var(--line);
+  font-weight: 700;
+  color: var(--text);
+  padding: 8px 14px;
+  border: 1px solid var(--line-strong);
   border-radius: 999px;
-  background: var(--void-2);
+  background: linear-gradient(180deg, #141414, #090909);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
 }
-.status-pill .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--scan);
-  box-shadow: 0 0 0 0 var(--scan);
-  animation: pulse 2s infinite var(--ease);
-}
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(52, 217, 200, 0.5);
-  }
-  70% {
-    box-shadow: 0 0 0 7px rgba(52, 217, 200, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(52, 217, 200, 0);
-  }
-}
-
 .app-main {
   flex: 1;
   display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 20px;
-  padding: 20px 24px 28px;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+  padding: 28px;
   min-height: 0;
 }
 .col-left {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   min-width: 0;
 }
 .col-right {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+  min-width: 0;
+}
+.col-full {
+  grid-column: 1 / -1;
   min-width: 0;
 }
 
 .section-title {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  margin: 0 0 10px;
+  font-family: var(--font-head);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: var(--text);
+  margin: 0 0 14px;
 }
 
 .panel {
-  background: var(--panel);
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.94), rgba(9, 9, 9, 0.98));
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 18px 60px rgba(0, 0, 0, 0.24);
 }
 
 /* ============================================================
@@ -109,20 +102,22 @@
    ============================================================ */
 .watch-input-row {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 .watch-input {
   flex: 1;
-  background: var(--void-2);
+  background: #050505;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 13px;
-  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 13px 14px;
   resize: none;
-  min-height: 64px;
-  line-height: 1.45;
+  min-height: 78px;
+  line-height: 1.35;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .watch-input::placeholder {
   color: var(--text-faint);
@@ -130,29 +125,34 @@
 .btn {
   font-family: var(--font-mono);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line-strong);
   background: var(--panel-2);
   color: var(--text);
-  padding: 9px 14px;
+  padding: 11px 16px;
   cursor: pointer;
-  transition: all 0.15s var(--ease);
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease), transform 0.15s var(--ease), background 0.15s var(--ease);
   white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
 }
 .btn:hover {
   border-color: var(--scan);
   color: var(--scan);
+  transform: translateY(-1px);
 }
 .btn-primary {
   background: var(--scan);
   border-color: var(--scan);
-  color: #04211d;
-  font-weight: 700;
+  color: #101300;
+  font-weight: 800;
 }
 .btn-primary:hover {
   filter: brightness(1.08);
-  color: #04211d;
+  color: #101300;
+  transform: translateY(-1px);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -224,12 +224,14 @@
   gap: 5px;
 }
 .spec-list li {
-  font-size: 12.5px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-dim);
-  padding: 7px 10px;
+  padding: 9px 11px;
   border-radius: var(--radius-sm);
-  border-left: 2px solid var(--line-strong);
-  background: var(--void-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  background: #000;
   animation: slide-in 0.35s var(--ease) backwards;
 }
 .spec-group.match .spec-list li {
@@ -245,39 +247,34 @@
 .board {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(280px, 1fr);
-  gap: 16px;
+  grid-auto-columns: minmax(300px, 1fr);
+  gap: 18px;
   overflow-x: auto;
-  padding-bottom: 6px;
+  padding-bottom: 8px;
   flex: 1;
-  min-height: 360px;
+  min-height: 390px;
 }
 .lane {
   display: flex;
   flex-direction: column;
-  background: var(--void-2);
+  background: linear-gradient(180deg, #0b0b0b, #060606);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   min-height: 0;
-  max-height: 62vh;
+  max-height: 64vh;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .lane-head {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-.lane-head .lane-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--scan);
-  animation: pulse 2.4s infinite var(--ease);
+  gap: 9px;
 }
 .lane-head .lane-name {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -298,11 +295,11 @@
   color: var(--reject);
 }
 .lane-feed {
-  padding: 10px;
+  padding: 12px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 11px;
   flex: 1;
 }
 .lane-empty {
@@ -330,22 +327,21 @@
     transform: rotate(360deg);
   }
 }
-
 /* ============================================================
    Candidate card
    ============================================================ */
 .card {
   border: 1px solid var(--line);
-  border-left: 3px solid var(--reject);
   border-radius: var(--radius-sm);
-  background: var(--panel);
-  padding: 11px 12px;
+  background: #000;
+  padding: 13px 14px;
   animation: card-in 0.4s var(--ease) backwards;
-  transition: border-color 0.15s var(--ease), transform 0.15s var(--ease);
+  transition: border-color 0.15s var(--ease), transform 0.15s var(--ease), background 0.15s var(--ease);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 .card.accepted {
-  border-left-color: var(--signal);
-  background: linear-gradient(90deg, var(--signal-dim), transparent 60%), var(--panel);
+  border-color: var(--line-strong);
+  background: #000;
 }
 .card.rejected {
   opacity: 0.74;
@@ -359,21 +355,24 @@
   gap: 8px;
 }
 .card-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
   color: var(--text);
-  line-height: 1.35;
+  line-height: 1.12;
   flex: 1;
 }
 .badge {
   font-family: var(--font-mono);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 3px 6px;
-  border-radius: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
   white-space: nowrap;
+  border: 1px solid currentColor;
 }
 .badge.accepted {
   color: var(--signal);
@@ -400,8 +399,9 @@
   color: var(--text-dim);
 }
 .card-reason {
-  margin-top: 8px;
-  font-size: 12px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-dim);
   line-height: 1.45;
 }
@@ -421,11 +421,12 @@
   gap: 5px;
   font-family: var(--font-mono);
   font-size: 11px;
+  font-weight: 700;
   border: 1px solid var(--line-strong);
-  background: var(--void-2);
+  background: var(--panel-2);
   color: var(--text-dim);
-  border-radius: var(--radius-sm);
-  padding: 5px 9px;
+  border-radius: 999px;
+  padding: 6px 10px;
   cursor: pointer;
   transition: all 0.13s var(--ease);
 }
@@ -457,11 +458,11 @@
   color: var(--scan);
 }
 .why {
-  margin-top: 10px;
-  padding: 10px;
+  margin-top: 12px;
+  padding: 12px;
   border-radius: var(--radius-sm);
-  background: var(--void);
-  border: 1px solid var(--line);
+  background: var(--panel-2);
+  border: 1px solid var(--line-strong);
   font-size: 12px;
   color: var(--text-dim);
   line-height: 1.55;
@@ -500,7 +501,8 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 8px;
+  gap: 18px;
+  margin-bottom: 14px;
 }
 .curve-current {
   font-family: var(--font-mono);
@@ -515,9 +517,15 @@
   color: var(--scan);
   margin-left: 8px;
 }
+.curve-plot {
+  width: 100%;
+  min-height: 260px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
 .curve-svg {
   width: 100%;
-  height: 180px;
+  height: clamp(260px, 26vw, 340px);
   display: block;
 }
 .curve-svg .grid-line {
@@ -557,9 +565,9 @@
 .pstage {
   flex: 1;
   position: relative;
-  padding: 12px 12px 12px 14px;
+  padding: 14px 14px 14px 16px;
   border: 1px solid var(--line);
-  background: var(--void-2);
+  background: #000;
   min-width: 0;
 }
 .pstage:first-child {
@@ -574,8 +582,8 @@
 .pstage .pstage-name {
   font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-faint);
 }
@@ -615,7 +623,6 @@
 }
 .pstage.running .pstage-state {
   background: var(--scan);
-  animation: pulse 1.4s infinite var(--ease);
 }
 .pstage.done .pstage-state {
   background: var(--signal);
@@ -659,5 +666,12 @@
 @media (max-width: 980px) {
   .app-main {
     grid-template-columns: 1fr;
+  }
+  .col-full {
+    grid-column: auto;
+  }
+  .curve-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

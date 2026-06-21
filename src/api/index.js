@@ -7,9 +7,10 @@
  * import below. Nothing else in the app changes.
  */
 import { createMockApi } from './mock.js';
-// import { createRealApi } from './real.js';
+import { createRealApi } from './real.js';
+
+const USE_REAL_BACKEND = false;
 
 export function createApi() {
-  return createMockApi();
-  // return createRealApi(import.meta.env.VITE_API_BASE ?? '');
+  return USE_REAL_BACKEND ? createRealApi(import.meta.env.VITE_API_BASE ?? '') : createMockApi();
 }
