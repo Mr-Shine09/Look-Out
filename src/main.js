@@ -1,101 +1,129 @@
 import './styles/theme.css';
 import './styles/main.css';
+import './styles/pages.css';
 
 import { el } from './lib/dom.js';
 import { createApi } from './api/index.js';
+import { createRouter } from './lib/router.js';
 import { Header } from './components/header.js';
-import { WatchCreator } from './components/watchCreator.js';
-import { Board } from './components/board.js';
-import { PrecisionCurve } from './components/precisionCurve.js';
-import { Pipeline } from './components/pipeline.js';
+import { SearchPage } from './components/searchPage.js';
+import { StayPage } from './components/stayPage.js';
+import { ReportPage } from './components/reportPage.js';
 
 const api = createApi();
 
-// ---- Components ---------------------------------------------------------
-const board = Board({
-  handlers: {
-    onFeedback: (candId, label, watchId) => api.sendFeedback(candId, label, watchId),
-    onAct: (candId) => {
-      pipeline.reset();
-      api.triggerPipeline(candId);
-      pipeline.node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    },
-  },
-});
+// Active topic the user is following (carried across Search → Stay → Report).
+let scope = { watchId: null, title: 'your watch' };
 
-const curve = PrecisionCurve();
-const pipeline = Pipeline();
+// Map filter tokens to spec phrases so checkboxes refine the compiled query
+// (and keep the backend scoped instead of firing on random noise).
+const FILTER_PHRASES = {
+  'where:near': 'in-person, within ~100mi of San Francisco',
+  'where:online': 'online events are acceptable',
+  'when:soon': 'registration or deadline is still open',
+  'type:events': 'events / meetups',
+  'type:funding': 'grants, funding or fellowships',
+  'type:hackathons': 'hackathons',
+};
 
-const watchCreator = WatchCreator({
-  onCreate: async (queryText) => {
-    const { watch_id } = await api.createWatch(queryText);
-    // Add a lane immediately so candidates have somewhere to land.
-    board.addWatch({ id: watch_id, query_text: queryText, status: 'compiling' });
+function composeQuery(query, filters = []) {
+  const phrases = filters.map((t) => FILTER_PHRASES[t]).filter(Boolean);
+  if (!phrases.length) return query;
+  return `${query} (must be: ${phrases.join('; ')})`;
+}
+
+// ---- Pages -------------------------------------------------------------
+const header = Header({ onNavigate: (key) => router.navigate(key) });
+
+const search = SearchPage({ onFollow: handleFollow });
+const report = ReportPage({ onBack: (s) => goStay(s) });
+const stay = StayPage({
+  api,
+  onReport: (s) => {
+    scope = { ...scope, ...s };
+    router.navigate('report');
   },
 });
 
 // ---- Layout ------------------------------------------------------------
 const app = document.getElementById('app');
 app.append(
-  Header(),
-  el('main', { class: 'app-main' }, [
-    el('div', { class: 'col-left' }, [watchCreator.node]),
-    el('div', { class: 'col-right' }, [board.node, pipeline.node]),
-    el('div', { class: 'col-full' }, [curve.node]),
-  ])
+  header.node,
+  el('main', { class: 'app-main' }, [search.node, stay.node, report.node])
 );
 
-// ---- Wire the WebSocket-style feed -------------------------------------
-// The real backend swap replaces createApi() internals; this dispatch stays.
+// ---- Router ------------------------------------------------------------
+const router = createRouter({
+  fallback: 'search',
+  routes: [
+    { key: 'search', node: search.node, onShow: () => header.setActive('search') },
+    {
+      key: 'stay',
+      node: stay.node,
+      onShow: () => {
+        header.setActive('stay');
+        stay.show(scope);
+      },
+    },
+    {
+      key: 'report',
+      node: report.node,
+      onShow: () => {
+        header.setActive('report');
+        report.show(scope);
+      },
+    },
+  ],
+});
+
+function goStay(nextScope) {
+  if (nextScope) scope = { watchId: nextScope.watchId ?? scope.watchId, title: nextScope.title ?? scope.title };
+  router.navigate('stay');
+}
+
+async function handleFollow({ query, filters = [], watchId, title }) {
+  if (watchId) {
+    // Reuse an existing feed — instant, no new compile.
+    scope = { watchId, title: title || query };
+    goStay(scope);
+    return;
+  }
+  // Custom search → compile a fresh feed from the query + filters.
+  const composed = composeQuery(query, filters);
+  scope = { watchId: null, title: query };
+  goStay(scope);
+  try {
+    const { watch_id } = await api.createWatch(composed);
+    scope = { watchId: watch_id, title: query };
+    stay.show(scope);
+  } catch (err) {
+    console.error('[follow] createWatch failed', err);
+  }
+}
+
+// ---- Live feed dispatch ------------------------------------------------
 api.subscribe((msg) => {
   switch (msg.type) {
     case 'candidate':
-      board.routeCandidate(msg);
-      break;
-    case 'spec_ready':
-      watchCreator.showSpec(
-        { must_match: msg.must_match, reject_cases: msg.reject_cases },
-        null
-      );
-      break;
-    case 'curve_update':
-      curve.addPoint({ timestamp: msg.timestamp, false_alarm_rate: msg.false_alarm_rate });
+      stay.handleCandidate(msg);
       break;
     case 'pipeline_stage':
-      pipeline.update(msg);
+      stay.handlePipeline(msg);
+      break;
+    case 'spec_ready':
+    case 'curve_update':
       break;
     default:
-      console.warn('[feed] unknown message type', msg);
+      break;
   }
 });
 
 // ---- Bootstrap ---------------------------------------------------------
-(async function init() {
-  const watches = await api.getWatches();
-  for (const w of watches) board.addWatch(w);
-  // Show the first watch's compiled spec in the creator panel as a sample.
-  if (watches[0]) watchCreator.showSpec(watches[0].spec, watches[0].query_text);
+router.start();
+api.start();
 
-  // BUG-2 fix: rehydrate already-processed candidates so a page refresh doesn't
-  // empty the board (they otherwise only arrive over the WebSocket).
-  if (typeof api.getCandidates === 'function') {
-    try {
-      const existing = await api.getCandidates();
-      for (const cand of existing) board.routeCandidate(cand);
-    } catch (err) {
-      console.warn('[init] candidate backfill failed', err);
-    }
-  }
-
-  const existingCurve = await api.getCurve();
-  if (existingCurve.length) curve.setPoints(existingCurve);
-
-  api.start();
-})();
-
-// ---- Live-fire demo hook ----------------------------------------------
-// In the browser console: lookout.fire()  -> injects a guaranteed match on cue.
+// Console demo hook: lookout.fire() injects a guaranteed match on cue.
 window.lookout = {
-  fire: (watchId) => api.injectLiveFire(watchId),
+  fire: (watchId) => api.injectLiveFire(watchId || scope.watchId),
   api,
 };

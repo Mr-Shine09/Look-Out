@@ -39,3 +39,6 @@ __pycache__/
 
 # Runtime scrape cache
 data/scraped_events.json
+
+# Local Netlify folder
+.netlify
