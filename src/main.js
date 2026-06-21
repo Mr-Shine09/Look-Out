@@ -110,7 +110,7 @@ async function handleFollow({ query, spec, watchId, title }) {
   scope = { watchId: null, title: query, spec };
   goStay(scope);
   try {
-    const { watch_id } = await api.createWatch(composed);
+    const { watch_id } = await api.createWatch(composed, spec);
     scope = { watchId: watch_id, title: query };
     stay.show(scope);
   } catch (err) {

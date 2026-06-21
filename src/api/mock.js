@@ -132,10 +132,18 @@ export function createMockApi() {
     }));
   }
 
-  async function createWatch(queryText) {
+  async function createWatch(queryText, searchSpec) {
     await tick(150); // 202 Accepted
     const id = `w_${Date.now().toString(36)}`;
-    const watch = { id, query_text: queryText, status: 'compiling', spec: { must_match: [], reject_cases: [] } };
+    // `searchSpec` mirrors the real backend's `search_spec` param; stored for
+    // parity/debugging even though the stub spec is derived from query text.
+    const watch = {
+      id,
+      query_text: queryText,
+      search_spec: searchSpec || null,
+      status: 'compiling',
+      spec: { must_match: [], reject_cases: [] },
+    };
     watches.push(watch);
     queues[id] = [];
 

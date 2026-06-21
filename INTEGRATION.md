@@ -26,7 +26,7 @@ commented lines.
 | App call | Real implementation |
 |---|---|
 | `getWatches()` | `GET /api/watches` → `[{ id, query_text, spec:{must_match[],reject_cases[]}, status }]` |
-| `createWatch(queryText)` | `POST /api/watches {query_text}` → `202`; spec arrives later via WS `spec_ready` |
+| `createWatch(queryText, spec?)` | `POST /api/watches {query_text, search_spec?}` → `202`; spec arrives later via WS `spec_ready` |
 | `sendFeedback(candId, label)` | `POST /api/candidates/{id}/feedback {label}` → `200` |
 | `getCurve()` | `GET /api/curve` → `[{ timestamp, false_alarm_rate }]` |
 | `subscribe(handler)` | `new WebSocket('/ws/feed')`; call `handler(JSON.parse(ev.data))` per message |
@@ -63,6 +63,19 @@ commented lines.
   semantic duplicates* section) instead of surfacing them. Emit it for candidates that matched an
   existing alert vector above the dedup threshold. (Frontend-added in the Search→Stay→Report
   redesign; if the backend doesn't emit it, duplicates simply won't be separated out.)
+- **`search_spec`** (optional, on `createWatch`) is the structured form of the advanced Search
+  panel. `query_text` already contains the same constraints folded into prose, so you can ignore
+  `search_spec` entirely and nothing breaks. If you want to use it directly, the shape is:
+  ```jsonc
+  { "query": "…",
+    "location": { "text": "San Francisco", "radiusMi": 100|null, "onlineOk": false },
+    "timeWindow": "week"|"month"|"quarter"|"any",
+    "types": ["events","hackathons","funding"],
+    "sources": ["luma","devpost","mlh","eventbrite"],
+    "strictness": 0..100,                 // suppression dial: higher = stricter dedup + relevance bar
+    "notify": { "frequency": "realtime"|"daily"|"weekly", "quietHours": false },
+    "include": ["…"], "exclude": ["…"] }  // must-have / muted keywords
+  ```
 - **`false_alarm_rate`** is expected in `0..1`; seed around `0.33` so the curve has room to fall.
   Push a `curve_update` both periodically and after each feedback so the chart reacts to thumbs.
 - **`criteria`** is optional sugar for the "why" panel: `[{ ok: boolean, text: string }]`. If you
