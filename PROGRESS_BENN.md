@@ -79,6 +79,16 @@ Owner: Benn (frontend/UX). Friend "Oak" owns backend (has a Netlify deploy).
   preview), all persisted to localStorage. Progress-tracking intentionally omitted per Benn.
 - **2026-06-21** — Phase 5: INTEGRATION.md note for `state:'duplicate'`; build verified clean
   (20 modules); pushed branch.
+- **2026-06-21** — searchSpec→backend (`ec30e22`): `createWatch(queryText, spec?)` now sends
+  `search_spec` alongside `query_text` (real + mock parity; additive so backend can ignore it).
+  Documented the spec shape in INTEGRATION.md for Oak.
+- **2026-06-21** — Visual polish (`0c362f7`): combined two refero refs Benn picked —
+  **Analogue** (dark agency: ink/graphite + LCDDot) and **monopo saigon** (editorial grotesque).
+  Synthesis = "monochrome instrument with editorial confidence": true-black + graphite surfaces,
+  **Space Grotesk** headings (dropped PT Serif), **JetBrains Mono** technical labels, **DotGothic16**
+  LCD dot-matrix font restricted to the live suppression counters (Stay ratio + stat tiles), lime
+  kept as the single brand accent, tighter radii (18→14), bigger hero scale + more whitespace.
+  Reasoning + self-critique loop captured in chat. NEXT: get Oak's eyes / real UI refs to refine.
 
 ## SUPPRESSION-ENGINE GOAL CHECK (where we are vs the big picture)
 - SEARCH now lets the user *scope precisely* — including the suppression-strictness dial that is
