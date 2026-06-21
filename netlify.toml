@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Public deploy ships the self-contained mock API (no backend required).
+# VITE_USE_REAL_BACKEND is intentionally left unset here so it defaults to mock.
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

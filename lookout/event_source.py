@@ -17,6 +17,41 @@ REQUIRED_EVENT_FIELDS = {
 
 class EventSource(Protocol):
     def poll(self) -> list[dict]: ...
+    def snapshot(self) -> list[dict]: ...
+
+
+class MultiEventSource:
+    """Fan several site-specific sources into one pool (e.g. Luma + Devpost)."""
+
+    def __init__(self, sources: list) -> None:
+        self.sources = [s for s in sources if s is not None]
+
+    def poll(self) -> list[dict]:
+        batch: list[dict] = []
+        for source in self.sources:
+            try:
+                batch.extend(source.poll())
+            except Exception as exc:  # never let one source crash the scout loop
+                print(f"[multi] poll failed for {type(source).__name__}: {exc!r}")
+        return batch
+
+    def snapshot(self) -> list[dict]:
+        events: list[dict] = []
+        seen: set[str] = set()
+        for source in self.sources:
+            try:
+                items = source.snapshot()
+            except Exception as exc:
+                print(f"[multi] snapshot failed for {type(source).__name__}: {exc!r}")
+                continue
+            for event in items:
+                eid = str(event.get("id") or event.get("url") or "")
+                if eid and eid in seen:
+                    continue
+                if eid:
+                    seen.add(eid)
+                events.append(event)
+        return events
 
 
 class SeedEventSource:
@@ -32,6 +67,10 @@ class SeedEventSource:
         batch = events[self._cursor : self._cursor + self.batch_size]
         self._cursor += len(batch)
         return batch
+
+    def snapshot(self) -> list[dict]:
+        """Full known event pool (for per-watch backfill on watch creation)."""
+        return self._read_events()
 
     def _read_events(self) -> list[dict]:
         if not self.path.exists():

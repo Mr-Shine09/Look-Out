@@ -14,10 +14,15 @@ Reads everything from environment variables (never hard-code secrets):
   BROWSERBASE_API_KEY      Browserbase
   BROWSERBASE_PROJECT_ID   Browserbase
   PHOENIX_URL              defaults to http://localhost:6006
+  SENTRY_DSN               Sentry project DSN (backend error monitoring)
 
 Usage:
   python verify.py
-Exit code is 0 only if all four checks pass.
+
+The Browserbase check is SKIPPED by default to protect the 60-min/month free
+tier. Opt in with VERIFY_BROWSERBASE=1 when you actually need to confirm it.
+
+Exit code is 0 only if no check FAILED (skipped checks do not fail the gate).
 """
 
 import os
@@ -29,7 +34,7 @@ try:
 except ImportError:
     pass  # dotenv not installed — falls back to whatever's already in the shell env
 
-G, R, DIM, RST = "\033[32m", "\033[31m", "\033[2m", "\033[0m"
+G, R, Y, DIM, RST = "\033[32m", "\033[31m", "\033[33m", "\033[2m", "\033[0m"
 
 
 def check_claude():
@@ -77,6 +82,9 @@ def check_redis():
 
 
 def check_browserbase():
+    # Protect the free tier: only spend a session when explicitly asked.
+    if os.environ.get("VERIFY_BROWSERBASE", "0") in {"0", "", "false", "False"}:
+        return None, "skipped (set VERIFY_BROWSERBASE=1 to test; protects 60-min/mo quota)"
     key = os.environ.get("BROWSERBASE_API_KEY")
     project = os.environ.get("BROWSERBASE_PROJECT_ID")
     if not key:
@@ -113,7 +121,27 @@ def check_phoenix():
             return True, f"HTTP {resp.status_code} at {url}"
         return False, f"HTTP {resp.status_code} at {url}"
     except Exception as e:
-        return False, f"{type(e).__name__}: {e}  (is the Phoenix Docker container up?)"
+        return False, f"{type(e).__name__}: {e}  (is Phoenix up at :6006?)"
+
+
+def check_sentry():
+    dsn = os.environ.get("SENTRY_DSN")
+    if not dsn:
+        return None, "SENTRY_DSN not set (backend error monitoring disabled)"
+    try:
+        import sentry_sdk
+    except ImportError:
+        return False, "sentry-sdk not installed  ->  pip install 'sentry-sdk[fastapi]'"
+    try:
+        # Init only — does NOT send an event, so it won't add noise to the dashboard.
+        # Confirms the DSN parses and the transport can be constructed (sentry-sdk 2.x API).
+        sentry_sdk.init(dsn=dsn, traces_sample_rate=0.0)
+        client = sentry_sdk.get_client()
+        if client is None or not client.is_active():
+            return False, "DSN did not initialize an active Sentry client"
+        return True, "DSN valid, client active"
+    except Exception as e:
+        return False, f"{type(e).__name__}: {e}"
 
 
 CHECKS = [
@@ -121,26 +149,30 @@ CHECKS = [
     ("Redis", check_redis),
     ("Browserbase", check_browserbase),
     ("Phoenix UI", check_phoenix),
+    ("Sentry", check_sentry),
 ]
 
 
 def main():
-    print(f"\n{DIM}Lookout verify gate — 4 checks{RST}\n")
-    results = []
+    print(f"\n{DIM}Lookout verify gate — {len(CHECKS)} checks{RST}\n")
+    failures = 0
     for name, fn in CHECKS:
         print(f"  checking {name} ...", end="", flush=True)
         passed, detail = fn()
-        results.append(passed)
-        mark = f"{G}PASS{RST}" if passed else f"{R}FAIL{RST}"
+        if passed is None:
+            mark = f"{Y}SKIP{RST}"
+        elif passed:
+            mark = f"{G}PASS{RST}"
+        else:
+            mark = f"{R}FAIL{RST}"
+            failures += 1
         print(f"\r  [{mark}] {name:<13} {DIM}{detail}{RST}")
 
-    all_ok = all(results)
     print()
-    if all_ok:
-        print(f"  {G}All four green. Plumbing is good — go build V0.{RST}\n")
+    if failures == 0:
+        print(f"  {G}Green machine. Plumbing is good — go build.{RST}\n")
         sys.exit(0)
-    n = results.count(False)
-    print(f"  {R}{n} check(s) failed. Fix the red lines above before feature code.{RST}\n")
+    print(f"  {R}{failures} check(s) failed. Fix the red lines above before feature code.{RST}\n")
     sys.exit(1)
 
 

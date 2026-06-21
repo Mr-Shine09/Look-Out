@@ -1,5 +1,8 @@
 # Dependencies
 node_modules/
+venv/
+venv-phoenix/
+venv-backend/
 
 # Build output
 dist/
@@ -9,6 +12,11 @@ dist-ssr/
 .env
 .env.local
 *.local
+CREDENTIALS.local.md
+# Keyed handoff briefs (contain live API keys) — keep local, hand off privately
+BRUCE-BACKEND-TRACK.md
+HARRISON-FRONTEND-TRACK.md
+# OAK-INFRA-TRACK.md is keyless (points to .env) — safe to keep readable/committable
 .venv/
 .DS_Store
 .vscode/*
@@ -16,6 +24,8 @@ dist-ssr/
 .idea/
 
 # Logs
+phoenix.log
+backend-install*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -26,3 +36,12 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Runtime scrape cache
+data/scraped_events.json
+
+# Local Netlify folder
+.netlify
+
+data/devpost_events.json
+data/searched_events.json

@@ -22,7 +22,7 @@ const fmtText = (value, fallback = '') => {
  * Accepted cards have thumbs (optimistic feedback) + an "act" trigger.
  * Every card has a click-to-expand "why did/didn't this fire" panel.
  */
-export function CandidateCard(cand, { onFeedback, onAct } = {}) {
+export function CandidateCard(cand, { onFeedback, onAct, onApply } = {}) {
   const accepted = cand.judgment === 'accepted';
   const title = fmtText(cand.title, 'Untitled opportunity');
   const source = fmtText(cand.source, 'Unknown source');
@@ -74,7 +74,36 @@ export function CandidateCard(cand, { onFeedback, onAct } = {}) {
     down.addEventListener('click', () => setLabel('not_relevant'));
     act.addEventListener('click', () => onAct?.(cand.id));
 
-    actions = el('div', { class: 'card-actions' }, [up, down, act, expandBtn]);
+    // ---- Auto-apply ----------------------------------------------------
+    const applied = Boolean(cand.applied);
+    const applyBtn = el('button', {
+      class: `card-apply${applied ? ' card-apply--done' : ''}`,
+      text: applied ? '✓ applied' : '⚡ auto-apply',
+      title: applied ? 'You applied to this' : 'Pre-fill your application and open registration',
+    });
+    if (applied) applyBtn.disabled = true;
+    applyBtn.addEventListener('click', async () => {
+      if (applyBtn.disabled) return;
+      const prev = applyBtn.textContent;
+      applyBtn.disabled = true;
+      applyBtn.textContent = '… applying';
+      try {
+        const ok = await onApply?.(cand);
+        if (ok) {
+          cand.applied = true;
+          applyBtn.classList.add('card-apply--done');
+          applyBtn.textContent = '✓ applied';
+        } else {
+          applyBtn.disabled = false;
+          applyBtn.textContent = prev;
+        }
+      } catch {
+        applyBtn.disabled = false;
+        applyBtn.textContent = prev;
+      }
+    });
+
+    actions = el('div', { class: 'card-actions' }, [up, down, applyBtn, act, expandBtn]);
   } else {
     actions = el('div', { class: 'card-actions' }, [expandBtn]);
   }
@@ -89,11 +118,34 @@ export function CandidateCard(cand, { onFeedback, onAct } = {}) {
     badge = el('span', { class: 'badge rejected', text: 'reject' });
   }
 
-  return el('article', { class: `card ${accepted ? 'accepted' : 'rejected'}` }, [
-    el('div', { class: 'card-top' }, [
-      el('div', { class: 'card-title', text: title }),
-      badge,
-    ]),
+  // ---- Clickable media + title (open the real event in a new tab) ------
+  const url = fmtText(cand.url);
+  const thumb = fmtText(cand.thumbnail);
+
+  let media = null;
+  if (thumb) {
+    const img = el('img', { class: 'card-thumb-img', src: thumb, alt: title, loading: 'lazy' });
+    const inner = [img, el('span', { class: 'card-thumb-src', text: source })];
+    media = url
+      ? el('a', { class: 'card-thumb', href: url, target: '_blank', rel: 'noopener noreferrer' }, inner)
+      : el('div', { class: 'card-thumb' }, inner);
+    // Drop the media block entirely if the image fails to load (no broken icons).
+    img.addEventListener('error', () => media.remove());
+  }
+
+  const titleNode = url
+    ? el('a', {
+        class: 'card-title card-title-link',
+        href: url,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        title: `Open on ${source}`,
+        text: title,
+      })
+    : el('div', { class: 'card-title', text: title });
+
+  const body = el('div', { class: 'card-body' }, [
+    el('div', { class: 'card-top' }, [titleNode, badge]),
     el('div', { class: 'card-meta' }, [
       el('span', { class: 'src', text: source }),
       cand.location ? el('span', { text: `· ${cand.location}` }) : null,
@@ -106,5 +158,10 @@ export function CandidateCard(cand, { onFeedback, onAct } = {}) {
     ]),
     actions,
     why,
+  ]);
+
+  return el('article', { class: `card ${accepted ? 'accepted' : 'rejected'}${thumb ? ' has-thumb' : ''}` }, [
+    media,
+    body,
   ]);
 }

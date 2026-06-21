@@ -72,10 +72,14 @@ export function createMockApi() {
     const w = live[Math.floor(Math.random() * live.length)];
     const template = queues[w.id].shift();
 
-    // ~1 in 6 accepted candidates arrives as a "changed" re-surface, mirroring
-    // the backend's HASH-diff dedup (status closed -> open, etc.).
+    // Semantic duplicates (same event, different source) are SUPPRESSED — the
+    // backend collapses these via RediSearch vector KNN. Mark them so the Stay
+    // page can count them as "duplicates silenced" instead of surfacing twice.
+    const isDuplicate = Boolean(template.dupGroup);
+    // ~1 in 6 non-duplicate accepted candidates arrives as a "changed" re-surface,
+    // mirroring the backend's HASH-diff dedup (status closed -> open, etc.).
     const isChanged =
-      template.judgment === 'accepted' && Math.random() < 0.16 && !template.dupGroup;
+      template.judgment === 'accepted' && Math.random() < 0.16 && !isDuplicate;
 
     const cand = {
       id: nextCid(),
@@ -90,13 +94,13 @@ export function createMockApi() {
       reason: template.reason,
       reasoning: template.reasoning,
       criteria: template.criteria || [],
-      state: isChanged ? 'changed' : 'new',
+      state: isDuplicate ? 'duplicate' : isChanged ? 'changed' : 'new',
       label: null,
       timestamp: nowIso(),
     };
     candidates.set(cand.id, cand);
 
-    if (cand.judgment === 'accepted') session.surfacedAccepted += 1;
+    if (cand.judgment === 'accepted' && cand.state !== 'duplicate') session.surfacedAccepted += 1;
 
     bus.emit({
       type: 'candidate',
@@ -128,10 +132,18 @@ export function createMockApi() {
     }));
   }
 
-  async function createWatch(queryText) {
+  async function createWatch(queryText, searchSpec) {
     await tick(150); // 202 Accepted
     const id = `w_${Date.now().toString(36)}`;
-    const watch = { id, query_text: queryText, status: 'compiling', spec: { must_match: [], reject_cases: [] } };
+    // `searchSpec` mirrors the real backend's `search_spec` param; stored for
+    // parity/debugging even though the stub spec is derived from query text.
+    const watch = {
+      id,
+      query_text: queryText,
+      search_spec: searchSpec || null,
+      status: 'compiling',
+      spec: { must_match: [], reject_cases: [] },
+    };
     watches.push(watch);
     queues[id] = [];
 
@@ -151,7 +163,7 @@ export function createMockApi() {
     return { accepted: true, watch_id: id };
   }
 
-  async function sendFeedback(candId, label) {
+  async function sendFeedback(candId, label, _watchId) {
     await tick(90);
     const cand = candidates.get(candId);
     if (cand) {
@@ -172,6 +184,68 @@ export function createMockApi() {
   async function getCurve() {
     await tick(100);
     return curve.map((p) => ({ ...p }));
+  }
+
+  let delivery = { channels: ['dashboard'], discord_webhook: '', webhook_url: '', email: '' };
+  async function getDelivery() {
+    await tick(80);
+    return { ...delivery };
+  }
+  async function saveDelivery(config = {}) {
+    await tick(120);
+    delivery = {
+      channels: Array.isArray(config.channels) ? config.channels : [],
+      discord_webhook: config.discord_webhook || '',
+      webhook_url: config.webhook_url || '',
+      email: config.email || '',
+    };
+    return { ok: true, config: { ...delivery }, test: config.test ? { ok: true, sent: [] } : undefined };
+  }
+
+  let profile = {
+    full_name: '', email: '', phone: '', dob: '', school: '', major: '',
+    grad_year: '', github: '', portfolio: '', linkedin: '', bio: '',
+  };
+  async function getProfile() {
+    await tick(80);
+    return { ...profile };
+  }
+  async function saveProfile(next = {}) {
+    await tick(120);
+    profile = { ...profile, ...next };
+    return { ok: true, profile: { ...profile } };
+  }
+  async function applyCandidate(candId, _watchId) {
+    await tick(100);
+    const cand = candidates.get(candId);
+    if (cand) cand.applied = true;
+    return { ok: true, applied_at: new Date().toISOString() };
+  }
+
+  async function getCandidates(watchId) {
+    await tick(100);
+    return [...candidates.values()]
+      .filter((c) => !watchId || c.watch_id === watchId)
+      .map((c) => ({ ...c, criteria: [...(c.criteria || [])] }));
+  }
+
+  async function updateSpec(watchId, spec = {}) {
+    await tick(120);
+    const watch = watches.find((w) => w.id === watchId);
+    if (watch) {
+      watch.spec = {
+        must_match: [...(spec.must_match || [])],
+        reject_cases: [...(spec.reject_cases || [])],
+      };
+      watch.status = 'watching';
+      bus.emit({
+        type: 'spec_ready',
+        watch_id: watchId,
+        must_match: watch.spec.must_match,
+        reject_cases: watch.spec.reject_cases,
+      });
+    }
+    return { id: watchId, ...(watch || {}) };
   }
 
   // ---- Pipeline (V3) ----------------------------------------------------
@@ -252,6 +326,13 @@ export function createMockApi() {
     createWatch,
     sendFeedback,
     getCurve,
+    getDelivery,
+    saveDelivery,
+    getProfile,
+    saveProfile,
+    applyCandidate,
+    getCandidates,
+    updateSpec,
     triggerPipeline,
     injectLiveFire,
     start,

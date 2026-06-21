@@ -1,39 +1,58 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=PT+Serif:wght@400;700&display=swap');
-
-/* Lookout design system — dark, terminal-adjacent.
+/* Lookout design system — "Watercolor Calm".
+   Warm paper (#fbf8f2) under soft, breathing watercolor washes; friendly
+   cornflower blue is the brand, a warm coral is the rare "this one matters"
+   signal. Concept: the paper is the silence Lookout keeps; a single coral
+   brushstroke is the one alert it surfaces. Elegant-but-happy serif (Fraunces)
+   for headlines, clean grotesque (Inter) for UI. Calm, organic micro-motion.
    Reused across every component so the dashboard reads as one product. */
 
 :root {
-  /* Core palette */
-  --void: #000000; /* near-black background */
-  --void-2: #060606; /* raised surface */
-  --panel: #0b0b0b; /* card / panel surface */
-  --panel-2: #141414; /* hover / nested surface */
-  --line: #1f1f1f; /* hairline borders */
-  --line-strong: #252525;
+  /* Core palette — Watercolor Calm: warm paper + cornflower + coral */
+  --void: #ffffff; /* knockout text/icon color on accents */
+  --obsidian: #fbf8f2; /* warm watercolor paper — app background */
+  --void-2: #fffdf9; /* raised surface / input fill */
+  --panel: #ffffff; /* card / panel surface */
+  --panel-2: #f3eee4; /* warm hover / nested surface */
+  --line: rgba(42, 45, 52, 0.10); /* hairline borders */
+  --line-strong: rgba(42, 45, 52, 0.18);
 
-  /* Accents */
-  --scan: #c5ff4a; /* teal — watching / active */
-  --scan-dim: rgba(197, 255, 74, 0.14);
-  --signal: #ffa94a; /* amber — real match */
-  --signal-dim: rgba(255, 169, 74, 0.14);
-  --reject: #7a7a8a; /* muted grey — rejected */
-  --reject-dim: rgba(122, 122, 138, 0.12);
-  --danger: #f4706b;
+  /* Accent — cornflower blue (brand / active / watching) */
+  --scan: #5b8def;
+  --scan-deep: #2f5fd0;
+  --scan-dim: rgba(91, 141, 239, 0.14);
+  --glow: rgba(91, 141, 239, 0.40);
 
-  /* Text */
-  --text: #ffffff;
-  --text-dim: #c5c5c5;
-  --text-faint: #7a7a8a;
+  /* Signal — warm coral: the one alert that matters (surfaced) */
+  --signal: #ff8a5b;
+  --signal-dim: rgba(255, 138, 91, 0.15);
+
+  /* Suppressed / muted — fades into the paper */
+  --reject: #a6abb5;
+  --reject-dim: rgba(42, 45, 52, 0.05);
+  --danger: #e5484d;
+
+  /* Watercolor wash palette — background blooms + category tags */
+  --wash-sky: #abd3f5;
+  --wash-blush: #f8b9c4;
+  --wash-peach: #fbd3a6;
+  --wash-mint: #a8e0c9;
+  --wash-lilac: #c9b8f0;
+
+  /* Text — soft charcoal, never harsh black */
+  --text: #2a2d34;
+  --text-dim: #5d626c;
+  --text-faint: #969ba6;
 
   /* Typography */
-  --font-mono: 'Inter Tight', ui-monospace, 'SF Mono', Menlo, monospace;
-  --font-head: 'PT Serif', Georgia, serif;
-  --font-body: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Inter', system-ui, sans-serif; /* labels: clean grotesque caps */
+  --font-head: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif; /* the big elegant headlines */
+  --font-lcd: var(--font-display);
 
-  /* Geometry */
-  --radius: 18px;
-  --radius-sm: 12px;
+  /* Geometry — soft / premium */
+  --radius: 16px;
+  --radius-sm: 10px;
   --gap: 18px;
 
   /* Motion */
@@ -52,22 +71,87 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(900px 520px at 74% -12%, rgba(197, 255, 74, 0.12), transparent 58%),
-    radial-gradient(760px 460px at 4% 8%, rgba(255, 255, 255, 0.06), transparent 54%),
-    linear-gradient(180deg, #060606 0%, var(--void) 46%);
+  background: var(--obsidian);
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 1.5;
-  letter-spacing: -0.01em;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Faint static wash base — the animated watercolor landscape canvas
+   (lib/backdrop.js, z-index -2) carries the primary painted scene. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -25vmax;
+  z-index: -3;
+  pointer-events: none;
+  background:
+    radial-gradient(48vmax 34vmax at 20% 8%, rgba(251, 211, 166, 0.16), transparent 64%),
+    radial-gradient(42vmax 32vmax at 84% 10%, rgba(248, 185, 196, 0.14), transparent 66%),
+    radial-gradient(38vmax 32vmax at 50% 50%, rgba(171, 211, 245, 0.10), transparent 68%);
+  filter: blur(46px) saturate(1.04);
+}
+
+/* Fine paper tooth over the washes */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
 }
 
 #app {
   min-height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- Shared motion keyframes ----------------------------------------- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+/* Watercolor wash-in for scroll reveals — soft blur dissolve */
+@keyframes wash-in {
+  from { opacity: 0; transform: translateY(22px); filter: blur(7px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+/* Brushstroke wipe — used for the surfaced "one alert" accent */
+@keyframes brush-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+/* Scroll-reveal hook (set by main.js IntersectionObserver) */
+.reveal {
+  opacity: 0;
+}
+.reveal.reveal--in {
+  animation: wash-in 0.7s var(--ease) both;
 }
 
 /* Utility classes */
@@ -76,7 +160,11 @@ body {
 }
 .head {
   font-family: var(--font-head);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.03em;
+}
+.lcd {
+  font-family: var(--font-display);
+  font-feature-settings: 'tnum' 1;
 }
 .dim {
   color: var(--text-dim);

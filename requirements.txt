@@ -6,3 +6,14 @@ sentence-transformers>=3.0.0,<4.0.0
 scikit-learn>=1.5.0,<2.0.0
 apscheduler>=3.10.4,<4.0.0
 anthropic>=0.34.0,<1.0.0
+
+# Observability (Infra track): Phoenix tracing + Sentry
+arize-phoenix-otel>=0.6.0
+openinference-instrumentation-anthropic>=0.1.0
+opentelemetry-sdk>=1.25.0
+sentry-sdk[fastapi]>=2.0.0
+
+# Real event scraping (Luma): direct fetch + optional Browserbase transport
+requests>=2.31.0,<3.0.0
+browserbase>=1.13.0,<2.0.0
+playwright>=1.40.0,<2.0.0

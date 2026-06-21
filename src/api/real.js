@@ -10,6 +10,8 @@ export function createRealApi(baseUrl = '') {
       ...options,
       headers: {
         Accept: 'application/json',
+        // Bypass ngrok-free's interstitial for JSON/XHR calls (ignored by the real backend).
+        'ngrok-skip-browser-warning': 'true',
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         ...(options.headers || {}),
       },
@@ -61,22 +63,76 @@ export function createRealApi(baseUrl = '') {
       return asArray(await request('/api/watches')).map(normalizeWatch);
     },
 
-    async createWatch(queryText) {
+    async createWatch(queryText, spec) {
+      // `query_text` stays the canonical input (mock/real parity). When the
+      // Search page supplies a structured spec, send it alongside as
+      // `search_spec` — additive, so a backend that ignores it still works.
+      const body = spec ? { query_text: queryText, search_spec: spec } : { query_text: queryText };
       return normalizeCreateWatch(await request('/api/watches', {
         method: 'POST',
-        body: JSON.stringify({ query_text: queryText }),
+        body: JSON.stringify(body),
       }));
     },
 
-    async sendFeedback(candId, label) {
+    async sendFeedback(candId, label, watchId) {
       return request(`/api/candidates/${encodeURIComponent(candId)}/feedback`, {
         method: 'POST',
-        body: JSON.stringify({ label }),
+        body: JSON.stringify(watchId ? { label, watch_id: watchId } : { label }),
       });
+    },
+
+    async getCandidates(watchId) {
+      const qs = watchId ? `?watch_id=${encodeURIComponent(watchId)}` : '';
+      return asArray(await request(`/api/candidates${qs}`)).map(normalizeCandidate);
+    },
+
+    async updateSpec(watchId, spec = {}) {
+      return normalizeWatch(await request(`/api/watches/${encodeURIComponent(watchId)}/spec`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          must_match: normalizeStringList(spec.must_match),
+          reject_cases: normalizeStringList(spec.reject_cases),
+        }),
+      }));
     },
 
     async getCurve() {
       return asArray(await request('/api/curve')).map(normalizeCurvePoint);
+    },
+
+    async getDelivery() {
+      return request('/api/delivery');
+    },
+
+    async saveDelivery(config = {}) {
+      return request('/api/delivery', {
+        method: 'POST',
+        body: JSON.stringify({
+          channels: Array.isArray(config.channels) ? config.channels : [],
+          discord_webhook: config.discord_webhook || '',
+          webhook_url: config.webhook_url || '',
+          email: config.email || '',
+          test: Boolean(config.test),
+        }),
+      });
+    },
+
+    async getProfile() {
+      return request('/api/profile');
+    },
+
+    async saveProfile(profile = {}) {
+      return request('/api/profile', {
+        method: 'POST',
+        body: JSON.stringify(profile),
+      });
+    },
+
+    async applyCandidate(candId, watchId) {
+      const qs = watchId ? `?watch_id=${encodeURIComponent(watchId)}` : '';
+      return request(`/api/candidates/${encodeURIComponent(candId)}/apply${qs}`, {
+        method: 'POST',
+      });
     },
 
     async triggerPipeline(candId) {
@@ -177,6 +233,7 @@ function normalizeCandidate(candidate) {
     title: stringValue(candidate.title ?? candidate.name, 'Untitled opportunity'),
     source: stringValue(candidate.source ?? candidate.site, 'Unknown source'),
     url: stringValue(candidate.url),
+    thumbnail: stringValue(candidate.thumbnail ?? candidate.image ?? candidate.cover_url),
     location: stringValue(candidate.location),
     starts_at: stringValue(candidate.starts_at ?? candidate.startsAt ?? candidate.date),
     status: stringValue(candidate.status),
