@@ -82,8 +82,8 @@ body {
   overflow-x: hidden;
 }
 
-/* Faint static wash base — the animated watercolor orbs (canvas, z-index -2,
-   mounted in lib/backdrop.js) drift on top of this for the lively motion. */
+/* Faint static wash base — the animated watercolor landscape canvas
+   (lib/backdrop.js, z-index -2) carries the primary painted scene. */
 body::before {
   content: '';
   position: fixed;
@@ -91,11 +91,10 @@ body::before {
   z-index: -3;
   pointer-events: none;
   background:
-    radial-gradient(40vmax 36vmax at 12% 8%, rgba(171, 211, 245, 0.22), transparent 60%),
-    radial-gradient(34vmax 32vmax at 88% 4%, rgba(248, 185, 196, 0.20), transparent 62%),
-    radial-gradient(38vmax 38vmax at 80% 92%, rgba(201, 184, 240, 0.18), transparent 62%),
-    radial-gradient(36vmax 34vmax at 20% 96%, rgba(168, 224, 201, 0.18), transparent 62%);
-  filter: blur(44px) saturate(1.05);
+    radial-gradient(48vmax 34vmax at 20% 8%, rgba(251, 211, 166, 0.16), transparent 64%),
+    radial-gradient(42vmax 32vmax at 84% 10%, rgba(248, 185, 196, 0.14), transparent 66%),
+    radial-gradient(38vmax 32vmax at 50% 50%, rgba(171, 211, 245, 0.10), transparent 68%);
+  filter: blur(46px) saturate(1.04);
 }
 
 /* Fine paper tooth over the washes */
