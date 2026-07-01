@@ -1,0 +1,6 @@
+# Local render harness (used to pre-render Mermaid diagrams; not part of the deck)
+_harness.html
+
+# OS / editor cruft
+.DS_Store
+*.log
