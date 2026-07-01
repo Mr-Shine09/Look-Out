@@ -11,6 +11,7 @@ import { Header } from './components/header.js';
 import { SearchPage } from './components/searchPage.js';
 import { StayPage } from './components/stayPage.js';
 import { ReportPage } from './components/reportPage.js';
+import { OverviewPage } from './components/overviewPage.js';
 
 const api = createApi();
 
@@ -54,7 +55,8 @@ function composeQuery(query, spec) {
 // ---- Pages -------------------------------------------------------------
 const header = Header({ onNavigate: (key) => router.navigate(key) });
 
-const search = SearchPage({ onFollow: handleFollow });
+const overview = OverviewPage({ api });
+const search = SearchPage({ api, onFollow: handleFollow });
 const report = ReportPage({ api, onBack: (s) => goStay(s) });
 const stay = StayPage({
   api,
@@ -69,19 +71,28 @@ const stay = StayPage({
 const app = document.getElementById('app');
 app.append(
   header.node,
-  el('main', { class: 'app-main' }, [search.node, stay.node, report.node])
+  el('main', { class: 'app-main' }, [overview.node, search.node, stay.node, report.node])
 );
 
 // ---- Router ------------------------------------------------------------
 const router = createRouter({
   fallback: 'search',
   routes: [
-    { key: 'search', node: search.node, onShow: () => header.setActive('search') },
+    {
+      key: 'overview',
+      node: overview.node,
+      onShow: () => {
+        header.setActive('overview');
+        overview.show();
+      },
+    },
+    { key: 'search', node: search.node, onShow: () => { header.setActive('search'); overview.hide(); } },
     {
       key: 'stay',
       node: stay.node,
       onShow: () => {
         header.setActive('stay');
+        overview.hide();
         stay.show(scope);
       },
     },
@@ -90,6 +101,7 @@ const router = createRouter({
       node: report.node,
       onShow: () => {
         header.setActive('report');
+        overview.hide();
         report.show(scope);
       },
     },
@@ -126,6 +138,7 @@ api.subscribe((msg) => {
   switch (msg.type) {
     case 'candidate':
       stay.handleCandidate(msg);
+      overview.handleCandidate(msg);
       // Live surfaced match (flagged server-side) -> ping. Backfill never sets notify.
       if (msg.notify && msg.judgment === 'accepted') pingSurfaced(msg);
       break;

@@ -3,6 +3,7 @@ import { CandidateCard } from './candidateCard.js';
 import { Pipeline } from './pipeline.js';
 import { autoApply } from '../lib/autoApply.js';
 import { PrecisionCurve } from './precisionCurve.js';
+import { classify, tally } from '../lib/classify.js';
 
 /** Tween a number element from its current value to `to` (cubic ease-out). */
 function animateCount(node, to) {
@@ -155,41 +156,8 @@ export function StayPage({ api, onReport, onNewSearch }) {
 
   const feed = el('div', { class: 'stay-feed' });
 
-  // Freshness is a moving target: a candidate accepted while still upcoming
-  // can go stale later just from sitting in the "surfaced" list while the
-  // clock moves on. Recomputed every render (not just at fetch time) so an
-  // accepted item quietly drops out of "surfaced" the moment its start time
-  // passes, without needing a refetch.
-  function isExpired(cand) {
-    if (cand.expired === true) return true;
-    if (!cand.starts_at) return false;
-    const dt = new Date(cand.starts_at);
-    return !Number.isNaN(dt.getTime()) && dt.getTime() < Date.now();
-  }
-
-  function classify(cand) {
-    if (cand.state === 'duplicate') return 'duplicate';
-    if (cand.judgment === 'accepted') return isExpired(cand) ? 'expired' : 'surfaced';
-    return 'offtopic';
-  }
-
-  function counts() {
-    let surfaced = 0;
-    let dup = 0;
-    let off = 0;
-    let expired = 0;
-    for (const cand of records.values()) {
-      const k = classify(cand);
-      if (k === 'surfaced') surfaced += 1;
-      else if (k === 'duplicate') dup += 1;
-      else if (k === 'expired') expired += 1;
-      else off += 1;
-    }
-    return { surfaced, dup, off, expired, silenced: dup + off + expired, seen: records.size };
-  }
-
   function updateStats() {
-    const { surfaced, dup, off, expired, silenced, seen } = counts();
+    const { surfaced, dup, off, expired, silenced, seen } = tally(records.values());
     animateCount(surfacedBig, surfaced);
     animateCount(silencedBig, silenced);
     animateCount(dupNum, dup);

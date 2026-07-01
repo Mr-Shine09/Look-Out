@@ -1,4 +1,5 @@
 import { el, clear } from '../lib/dom.js';
+import { EventStrip } from './eventStrip.js';
 
 /**
  * SEARCH — the front door. One purpose: tell Lookout the exact thing to watch.
@@ -164,7 +165,7 @@ function keywordInput(placeholder, accent) {
   return { node: el('div', { class: 'kw-wrap' }, [chips]), get: () => [...words] };
 }
 
-export function SearchPage({ onFollow }) {
+export function SearchPage({ api, onFollow }) {
   const input = el('input', {
     class: 'search-input',
     type: 'text',
@@ -328,6 +329,8 @@ export function SearchPage({ onFollow }) {
     ['See what it already watches', el('span', { class: 'cue-arrow', text: '↓' })]
   );
 
+  const strip = api ? EventStrip({ api }) : null;
+
   const node = el('section', { class: 'page page-search', hidden: true }, [
     el('div', { class: 'search-hero' }, [
       el('p', { class: 'eyebrow', text: 'Search' }),
@@ -340,6 +343,7 @@ export function SearchPage({ onFollow }) {
       el('div', { class: 'adv-panel' }, [advancedToggle, advancedBody]),
       scrollCue,
     ]),
+    strip ? strip.node : null,
     examplesWrap,
   ]);
 

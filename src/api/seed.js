@@ -4,6 +4,36 @@
  * swapping mock.js for real.js is a one-line change, not a rewrite.
  */
 
+/**
+ * Placeholder event art for the mock: a soft two-tone gradient as an inline
+ * SVG data URI. Real candidates carry real Luma cover images; the mock needs
+ * something that can never 404 on a static deploy.
+ */
+function mockThumb(from, to) {
+  const svg =
+    `<svg xmlns='http://www.w3.org/2000/svg' width='320' height='180'>` +
+    `<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>` +
+    `<stop offset='0' stop-color='${from}'/><stop offset='1' stop-color='${to}'/>` +
+    `</linearGradient></defs>` +
+    `<rect width='320' height='180' fill='url(%23g)'/>` +
+    `<circle cx='250' cy='40' r='56' fill='%23ffffff' fill-opacity='0.18'/>` +
+    `<circle cx='60' cy='150' r='40' fill='%23ffffff' fill-opacity='0.12'/>` +
+    `</svg>`;
+  return `data:image/svg+xml;utf8,${svg.replace(/#/g, '%23')}`;
+}
+
+// Watercolor wash palette (mirrors theme.css) — one pairing per event.
+const THUMBS = [
+  mockThumb('#abd3f5', '#5b8def'),
+  mockThumb('#f8b9c4', '#ff8a5b'),
+  mockThumb('#fbd3a6', '#f8b9c4'),
+  mockThumb('#a8e0c9', '#abd3f5'),
+  mockThumb('#c9b8f0', '#5b8def'),
+  mockThumb('#5b8def', '#c9b8f0'),
+];
+let _thumbIdx = 0;
+const nextThumb = () => THUMBS[_thumbIdx++ % THUMBS.length];
+
 export const WATCHES = [
   {
     id: 'w_ml_hack',
@@ -255,6 +285,12 @@ export const CANDIDATE_POOL = {
     },
   ],
 };
+
+// Every pool candidate carries placeholder art so the event strip has cards
+// to show in mock mode (real candidates bring real Luma covers instead).
+for (const pool of Object.values(CANDIDATE_POOL)) {
+  for (const cand of pool) cand.thumbnail = nextThumb();
+}
 
 /** Spec stub returned when a brand-new watch is created (no API key path). */
 export function stubSpecFor(queryText) {

@@ -1,6 +1,7 @@
 import { el } from '../lib/dom.js';
 
 const STEPS = [
+  { key: 'overview', label: 'Overview' },
   { key: 'search', label: 'Search' },
   { key: 'stay', label: 'Stay' },
   { key: 'report', label: 'Notify' },

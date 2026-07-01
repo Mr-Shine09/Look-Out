@@ -4,11 +4,13 @@
 > Claude Code) can pick up Lookout with zero prior context: what it is, how it's built,
 > what's done, what's next, and how to run it.
 
-- **Last worked on:** 2026-07-01
+- **Last worked on:** 2026-07-01 (Session 4)
 - **GitHub:** https://github.com/BennPhu/Look-Out
 - **Active branch:** `feat/luma-scrape-source` (stacked history on `feat/infra-tracing`)
-- **Last commit:** `45be717` (2026-07-01) — pushed to origin, working tree clean.
+- **Last commit:** `45be717` (2026-07-01). **Working tree is DIRTY** — Session 4 built
+  the event strip + Overview page but did **not** commit yet (see Section 5, Session 4).
 - **Owner:** Oak (orchestration + product + backend). Frontend/UX track: Benn.
+- **Roadmap now lives as GitHub issues** (#4–#10) — see Section 7.
 
 ---
 
@@ -241,6 +243,56 @@ endpoint exists yet if you want to clean them up.
      `presentation/`, `scripts/serve-public.sh` (skipped `lookout-deck.zip` — binary,
      redundant with `presentation/`). All pushed to `origin/feat/luma-scrape-source`.
 
+- **2026-07-01 (Session 4) — roadmap → GitHub issues, then shipped features #4 & #5
+  (NOT yet committed):**
+  1. **Filed the roadmap as GitHub issues #4–#10** (see Section 7). Each issue has
+     checkbox acceptance criteria + a concrete "how to test" + a "done only after Oak
+     approves" clause — the agreed working rhythm.
+  2. **Issue #4 — Sliding event-thumbnail strip** (`src/components/eventStrip.js`):
+     YouTube-style auto-scrolling marquee of real event cards. Pulls
+     `GET /api/candidates`, keeps ones with a `thumbnail`, seamless `-50%` CSS loop,
+     hover-pauses, click opens the event `url`, drops cards whose image 404s, respects
+     `prefers-reduced-motion`. Mounted on the Search page (below the hero) **and** the
+     Overview page. Mock mode gets self-contained inline-SVG gradient thumbnails
+     (`seed.js` `mockThumb`/`THUMBS`) so a static deploy never shows broken images.
+  3. **Issue #5 — Dynamic Overview page** (`src/components/overviewPage.js`, route
+     `#/overview`, new "Overview" header nav item as the FIRST step): live global
+     stats across all watches — surfaced vs silenced, duplicates / off-topic /
+     already-passed, total scanned, active watches, sources seen — plus the event
+     strip. Updates live via the shared WS feed dispatch **and** a 5s REST poll.
+     Verified against the real backend: tiles matched the API exactly (6 surfaced /
+     1861 silenced / 1867 scanned / 22 watches). Live update verified by injecting
+     candidates (seen 12→14, surfaced 4→6, no refresh).
+  4. **Extracted `src/lib/classify.js`** (`isExpired`/`classify`/`tally`) as the single
+     source of truth for bucketing, and refactored `stayPage.js` onto it — so Stay and
+     Overview counts can never drift (satisfies #5's "already-passed matches Stay").
+  5. **Two real bugs found & fixed while testing #5:**
+     - **Cross-watch id collision:** the backend reuses one event `id` across every
+       watch that judged it, so keying the Overview aggregate by `id` alone collapsed
+       1867 rows → 133. Fixed by keying on `watch_id + id` so "total scanned" matches
+       `GET /api/candidates` exactly.
+     - **Hidden-tab count freeze:** the animated counters used `requestAnimationFrame`,
+       which browsers throttle in a background tab, leaving stale numbers. Added a
+       fallback to land on the final value when `document.hidden`.
+  6. **Validated the search pipeline end-to-end** with query "In-person Hackathons in
+     San Francisco during July". Spec compiled correctly (in-person → online reject
+     case); the judge correctly rejected all 20 processed Luma candidates (none were
+     hackathons). **0 surfaced — but that's correct: the live Luma source currently has
+     no in-person SF hackathons.** Proved the judge is not broken by calling it directly
+     — a real in-person SF July hackathon → **accepted**, an online one → **rejected**.
+     Takeaway: this is a **data-coverage gap, not a bug** (the SF hackathons live in the
+     seed `events.json`, not the active `scrape`/Luma source). Belongs to issue #6 /
+     event-sourcing. This test created a real watch `w_3b836e2668` in Redis (cleanable
+     once #7's delete endpoint lands).
+  7. **Open decision for review:** the Overview ratio line reads "surfaced only 0%"
+     because 6/1867 rounds to 0% — honest but maybe better as "<1%" or a raw count.
+  8. `.claude/launch.json` gained a `frontend-mock` config (Vite on :5174, no
+     backend/env) for testing the mock path.
+  - **Files this session** — new: `src/components/eventStrip.js`,
+    `src/components/overviewPage.js`, `src/lib/classify.js`; modified: `src/main.js`,
+    `src/components/{header,searchPage,stayPage}.js`, `src/api/{mock,seed}.js`,
+    `src/styles/pages.css`, `.claude/launch.json`. `vite build` clean. **Not committed.**
+
 ---
 
 ## 6. How to run the full stack
@@ -282,29 +334,29 @@ button and the resync fallback (Section 5.5–5.6) exist because of this.
 
 ---
 
-## 7. What's planned (TODO / roadmap)
+## 7. What's planned (now tracked as GitHub issues #4–#10)
 
-**Next up (requested, not yet built):**
-1. **Sliding event thumbnails** — a YouTube-style auto-scrolling strip of real event
-   cards (data already supports it: `candidateCard.js` reads `thumbnail`+`url`).
-   Placement TBD (Search landing vs. new Overview page).
-2. **Dynamic overview page** — a live overview (event strip + high-level stats:
-   surfaced vs silenced, sources, counts).
+Working rhythm (agreed Session 4): tackle issues one at a time; each is only "done"
+after Oak reviews it live and explicitly approves — otherwise keep iterating on it.
 
-**Backend / data:**
-3. **Match-rate tuning, round 2** — now that the Ollama judge is strict-by-design
-   (Section 5.2), watch real acceptance rates and see if it's now *too* strict on the
-   local model vs. too lenient before; may need another calibration pass.
-4. **Clean up junk watches** — no `DELETE /api/watches/{id}` endpoint exists yet;
-   would help clear the pre-double-submit-fix duplicate watches sitting in Redis.
-5. **Spec human-in-the-loop UI** — surface editable spec chips; don't show spec until
-   "Compile," lock on "Confirm" (API already supports `PATCH .../spec`).
+- **[#4] Sliding event-thumbnail strip** — ✅ **built Session 4, awaiting Oak's review**
+  (not committed). Mounted on Search + Overview.
+- **[#5] Dynamic Overview page** — ✅ **built Session 4, awaiting Oak's review** (not
+  committed). Route `#/overview`, live global stats + event strip.
+- **[#6] Judge calibration round 2** — labeled eval set + repeatable eval script; measure
+  real accept/reject rates and tune. **Prioritized by the Session 4 search test** (the
+  live Luma source has no in-person SF hackathons → strongly consider adding a hackathon
+  event source or switching `LOOKOUT_EVENT_SOURCE` for demos).
+- **[#7] `DELETE /api/watches/{id}` + UI delete** — clean up junk watches (incl. the new
+  `w_3b836e2668` test watch from Session 4).
+- **[#8] Spec human-in-the-loop UI** — editable spec chips (Compile → edit → Confirm);
+  API already supports `PATCH .../spec`.
+- **[#9] Public deploy** — Netlify mock demo (`npx netlify-cli deploy --dir=dist --prod`);
+  stretch: cloudflared tunnel + `wss` + CORS for the real backend.
+- **[#10] Merge stack to `main`** — order: `feat/infra-tracing` → `main`, then
+  `feat/luma-scrape-source` → `main`. Do LAST.
 
-**Infra / deploy:**
-6. **Public deploy** — finish Netlify CLI deploy of the mock-mode frontend
-   (`npx netlify-cli deploy --dir=dist --prod`); for real backend need a tunnel
-   (cloudflared) + `wss` + CORS for the deployed origin.
-7. **Merge** — order: `feat/luma-scrape-source` stacks on `feat/infra-tracing` -> `main`.
+Suggested order: #7 (clears junk data first) → #4/#5 review → #6 → #8 → #9 → #10.
 
 ---
 
@@ -332,8 +384,11 @@ button and the resync fallback (Section 5.5–5.6) exist because of this.
 - [ ] `brew services start redis-stack-server` and `brew services start ollama`
       (both may already be running — check `brew services list`).
 - [ ] Launch backend + frontend (Section 6); confirm `/health` is green and
-      `verify.py` passes.
-- [ ] Build the sliding event-thumbnail strip + dynamic overview page (Section 7.1–7.2).
-- [ ] Consider a `DELETE /api/watches/{id}` endpoint to clean up junk test watches.
+      `verify.py` passes. (Preview: `frontend` = real backend :5173, `frontend-mock`
+      = mock-only :5174.)
+- [ ] **Review the uncommitted Session 4 work** (event strip + Overview page) — open
+      `#/overview` on both real and mock. Decide the "surfaced only 0%" wording
+      (Section 5, Session 4, item 7). If approved, **commit** (working tree is dirty).
+- [ ] Then continue the issue queue (Section 7): suggested #7 → #6 → #8 → #9 → #10.
 - [ ] Repo: https://github.com/BennPhu/Look-Out (branch `feat/luma-scrape-source`,
-      commit `45be717`, working tree clean).
+      last commit `45be717` — **working tree has uncommitted Session 4 changes**).
