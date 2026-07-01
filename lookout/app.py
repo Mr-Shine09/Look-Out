@@ -109,7 +109,12 @@ async def lifespan(app: FastAPI):
         source = SeedEventSource(settings.events_path, settings.event_batch_size)
         print("[startup] event source: seed")
     embeddings = EmbeddingService(settings.embedding_model)
-    judge = SpecAndFitJudge(settings.anthropic_api_key)
+    judge = SpecAndFitJudge(
+        settings.anthropic_api_key,
+        provider=settings.judge_provider,
+        ollama_host=settings.ollama_host,
+        ollama_model=settings.ollama_model,
+    )
     learning = LearningService(store.redis)
     notifier = Notifier(store, settings)
     engine = LookoutEngine(settings, store, feed, source, embeddings, judge, learning, notifier)

@@ -5,6 +5,9 @@ numpy>=1.26.0,<3.0.0
 sentence-transformers>=3.0.0,<4.0.0
 scikit-learn>=1.5.0,<2.0.0
 apscheduler>=3.10.4,<4.0.0
+
+# Judge LLM: only needed if LOOKOUT_JUDGE_PROVIDER=anthropic (default "auto" falls back
+# to a local Ollama model or the deterministic stub judge — see requests below / README)
 anthropic>=0.34.0,<1.0.0
 
 # Observability (Infra track): Phoenix tracing + Sentry
@@ -13,7 +16,12 @@ openinference-instrumentation-anthropic>=0.1.0
 opentelemetry-sdk>=1.25.0
 sentry-sdk[fastapi]>=2.0.0
 
-# Real event scraping (Luma): direct fetch + optional Browserbase transport
+# Real event scraping (Luma): direct fetch (default) + optional Browserbase transport.
+# Also used for the Ollama judge (local HTTP call) and Discord webhook delivery.
 requests>=2.31.0,<3.0.0
 browserbase>=1.13.0,<2.0.0
 playwright>=1.40.0,<2.0.0
+
+# verify.py gate
+httpx>=0.27.0,<1.0.0
+python-dotenv>=1.0.0,<2.0.0

@@ -14,7 +14,7 @@ Every alert tool — Google Alerts, RSS, "track this search" — is built to not
 **Lookout is a suppression engine.** For every change it detects on the web, it asks two questions before it ever pings you:
 
 1. **Have I effectively shown you this already?** (semantic duplicate — checked against alert history in Redis vector search)
-2. **Does it actually matter to you?** (relevance — judged by Claude against a spec compiled from your plain-English ask)
+2. **Does it actually matter to you?** (relevance — judged by an LLM against a spec compiled from your plain-English ask; runs on a local **Ollama** model by default, or Claude if you'd rather pay for one)
 
 It only surfaces an alert when **both** clear the bar. The longer it runs, the quieter and sharper it gets, because its memory of "what you've already seen" keeps growing. The single watchful eye in our logo is the point: **one alert that matters**, out of all the noise it silenced.
 
@@ -28,7 +28,7 @@ It only surfaces an alert when **both** clear the bar. The longer it runs, the q
 |---|---|---|
 | **Goal** | Surface *more* matches | Surface *fewer* — only what's new **and** relevant |
 | **Repeats** | Re-alerts on the same item reworded | **Suppresses semantic duplicates** via Redis vector KNN |
-| **Relevance** | Keyword match | **Claude-judged** against a compiled spec + a per-watch learned threshold |
+| **Relevance** | Keyword match | **LLM-judged** (local Ollama by default) against a compiled spec + a per-watch learned threshold |
 | **Memory** | Stateless per query | **Stateful** — remembers every alert it ever surfaced (vectors in Redis) |
 | **Changes** | Either silent or re-alerts wholesale | Detects **meaningful field changes** (closed→open, time/venue) and re-surfaces *only those* |
 | **Over time** | Same noise forever | **Gets quieter** as its memory grows |
@@ -59,9 +59,9 @@ An event finder answers *"what exists?"*. Lookout answers *"what changed that I 
 | **Backend** | FastAPI + Uvicorn (Python 3.11) | REST + WebSocket API, async scout loop |
 | **Suppression / memory** | **Redis Stack (RediSearch, HNSW vectors)** | The product core — dedup, "seen" memory, metrics |
 | **Embeddings** | `sentence-transformers/all-MiniLM-L6-v2` (384-d) | Turns each candidate into a vector for KNN |
-| **Reasoning** | **Anthropic Claude** (`claude-haiku-4-5`) | Spec compile + "does this matter?" judging |
+| **Reasoning** | Pluggable judge: **Ollama** (local, free, default) / Anthropic Claude / deterministic stub | Spec compile + "does this matter?" judging — set via `LOOKOUT_JUDGE_PROVIDER` |
 | **Learning** | scikit-learn (per-watch logistic model) | Tunes the relevance threshold from feedback |
-| **Web watching** | **Browserbase** (Playwright over CDP) + `requests` | Fetch layer for real source pages (Luma, etc.) |
+| **Web watching** | `requests` (default) + optional **Browserbase** (Playwright over CDP) | Fetch layer for real source pages (Luma, etc.) |
 | **Tracing** | **Arize Phoenix** + OpenInference (OpenTelemetry) | Every Claude call + agent stage as a span |
 | **Error monitoring** | **Sentry** | Backend error capture across the live pipeline |
 | **Scheduling** | APScheduler | Drives the periodic poll |
@@ -177,7 +177,20 @@ flowchart TD
 
 ## Tech stack implementation — step by step
 
-> Prereqs: **Python 3.11**, **Node 18+**, and **Redis Stack** (RediSearch module required). Docker optional.
+> Prereqs: **Python 3.11**, **Node 18+**, and **Redis Stack** (RediSearch module required). Docker
+> optional — macOS/Homebrew works fine and needs no daemon running when you're not using the app.
+>
+> **Cost notes** (why the setup below looks the way it does):
+> - **Judge LLM** defaults to a **local Ollama model** — free, no account, no rate limit. Claude is
+>   still supported (`LOOKOUT_JUDGE_PROVIDER=anthropic`) if you'd rather pay for better judgment quality.
+> - **Browserbase is off by default.** Luma's discovery pages are server-rendered, so the plain
+>   `requests` fetch path returns identical data for free. Only turn Browserbase on if you add a
+>   source that needs real browser rendering or hits an anti-bot wall — the free tier (1 browser-hour/mo)
+>   is plenty for occasional use.
+> - **Redis** is the actual datastore (watches, candidates, feedback, the precision curve) *and* the
+>   vector index — not just demo flavor. Run it locally; there's no need to pay for a hosted instance
+>   for personal/occasional use.
+> - **Sentry + Discord** are both free (GitHub Student Pack Sentry plan; Discord webhooks are free).
 
 ### 1. Frontend (zero keys, runs on a mock)
 ```bash
@@ -185,17 +198,32 @@ npm install
 npm run dev          # http://localhost:5173 — full dashboard on mock data
 ```
 
-### 2. Redis Stack (the suppression engine)
+### 2. Redis Stack (the suppression engine — local, free, no account needed)
 ```bash
-# Docker:
-docker run -d --name lookout-redis -p 6379:6379 redis/redis-stack:latest
-# or macOS (Homebrew):
+# macOS (Homebrew) — what this project actually runs on:
 brew tap redis-stack/redis-stack
 brew install --cask redis-stack-server
-redis-stack-server   # listens on localhost:6379 with Search/JSON/etc.
-```
+redis-stack-server &          # foreground; Ctrl-C to stop
+# or run it as a background launchd service instead:
+brew services start redis-stack-server
 
-### 3. Backend (FastAPI + Redis + Claude)
+# Docker alternative, if you prefer it:
+docker run -d --name lookout-redis -p 6379:6379 redis/redis-stack:latest
+```
+Only needs to be running while you're actually using Lookout — stop it (`brew services stop
+redis-stack-server` or `redis-cli shutdown`) when you're done; nothing is billed either way.
+
+### 3. Judge LLM — Ollama (local, free, default)
+```bash
+brew install ollama
+brew services start ollama              # serves on http://localhost:11434
+ollama pull llama3.1:8b                  # ~4.7GB, needs ~8GB free RAM
+```
+Prefer Claude instead? Skip this step and set `LOOKOUT_JUDGE_PROVIDER=anthropic` +
+`ANTHROPIC_API_KEY` in step 5. No key and no Ollama running? Lookout falls back to a deterministic
+regex-based stub judge — good enough to demo the plumbing, weaker at real judgment calls.
+
+### 4. Backend deps
 ```bash
 python3.11 -m venv venv-backend
 ./venv-backend/bin/pip install -r requirements.txt
@@ -204,50 +232,59 @@ python3.11 -m venv venv-backend
 ./venv-backend/bin/python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
 ```
 
-### 4. Configure environment
+### 5. Configure environment
+```bash
+cp .env.example .env   # then fill in / adjust as below
+```
 ```bash
 # Core
 export REDIS_URL=redis://localhost:6379
-export ANTHROPIC_API_KEY=sk-ant-...
 
-# Real web watching via Browserbase (optional — falls back to requests)
+# Judge LLM — pick one
+export LOOKOUT_JUDGE_PROVIDER=ollama     # default; or "anthropic" / "stub"
+export LOOKOUT_OLLAMA_MODEL=llama3.1:8b
+# export ANTHROPIC_API_KEY=sk-ant-...    # only if LOOKOUT_JUDGE_PROVIDER=anthropic
+
+# Real web watching (requests by default; Browserbase optional — see cost note above)
 export LOOKOUT_EVENT_SOURCE=scrape
-export LOOKOUT_USE_BROWSERBASE=1
-export BROWSERBASE_API_KEY=bb_...
-export BROWSERBASE_PROJECT_ID=...
+# export LOOKOUT_USE_BROWSERBASE=1
+# export BROWSERBASE_API_KEY=bb_...
+# export BROWSERBASE_PROJECT_ID=...
 
-# Observability (both optional / fail-soft)
+# Observability (all optional / fail-soft)
 export SENTRY_DSN=https://...ingest.sentry.io/...
 export PHOENIX_COLLECTOR_ENDPOINT=http://localhost:6006
+export LOOKOUT_DISCORD_WEBHOOK=https://discord.com/api/webhooks/...
 
 # Tuning knobs
 export LOOKOUT_DUP_DISTANCE=0.08      # the suppression dial
 export LOOKOUT_POLL_SECONDS=8
 ```
 
-### 5. (Optional) Phoenix tracing server
+### 6. (Optional) Phoenix tracing server
 ```bash
 # Python 3.11 venv just for Phoenix, then:
 phoenix serve         # UI + collector at http://localhost:6006
 ```
 
-### 6. Run the backend
+### 7. Run the backend
 ```bash
+set -a; . ./.env; set +a
 ./venv-backend/bin/uvicorn lookout.app:app --host 127.0.0.1 --port 8000
 ```
 On boot it calls `ensure_index()` (creates the vector index), seeds a default watch, and starts the async scout loop.
 
-### 7. Point the dashboard at the real backend
-In `src/api/index.js`, swap the mock for the real adapter:
-```js
-// return createMockApi();
-return createRealApi(import.meta.env.VITE_API_BASE ?? 'http://localhost:8000');
+### 8. Point the dashboard at the real backend
+Env-driven, no code edits needed:
+```bash
+VITE_USE_REAL_BACKEND=true VITE_API_BASE=http://127.0.0.1:8000 \
+node_modules/.bin/vite --host 127.0.0.1 --port 5173 --strictPort
 ```
 See the **API surface** table above for the full REST + WebSocket contract.
 
-### 8. Verify everything
+### 9. Verify everything
 ```bash
-python verify.py             # checks Claude / Redis / Browserbase / Phoenix
+python verify.py             # checks judge (Claude/Ollama) / Redis / Browserbase / Phoenix / Sentry / Discord
 python scripts/test_dedup.py # proves semantic suppression end-to-end
 ```
 

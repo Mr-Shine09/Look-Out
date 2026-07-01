@@ -21,17 +21,31 @@ DEFAULT_REJECT_CASES = [
 
 
 class SpecAndFitJudge:
-    def __init__(self, api_key: str | None) -> None:
+    def __init__(
+        self,
+        api_key: str | None,
+        provider: str | None = None,
+        ollama_host: str | None = None,
+        ollama_model: str | None = None,
+    ) -> None:
         self.api_key = api_key
         self.model = os.getenv("LOOKOUT_ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
+        self.ollama_host = (ollama_host or os.getenv("LOOKOUT_OLLAMA_HOST", "http://localhost:11434")).rstrip("/")
+        self.ollama_model = ollama_model or os.getenv("LOOKOUT_OLLAMA_MODEL", "llama3.1:8b")
+        # "anthropic" | "ollama" | "stub" | "auto" (auto = anthropic if keyed, else stub)
+        self.provider = (provider or os.getenv("LOOKOUT_JUDGE_PROVIDER", "auto")).lower()
+        if self.provider == "auto":
+            self.provider = "anthropic" if api_key else "stub"
 
     async def compile_spec(self, query_text: str) -> dict[str, list[str]]:
-        if not self.api_key:
-            return stub_spec_for(query_text)
         try:
-            return await asyncio.to_thread(self._compile_spec_with_claude, query_text)
+            if self.provider == "anthropic" and self.api_key:
+                return await asyncio.to_thread(self._compile_spec_with_claude, query_text)
+            if self.provider == "ollama":
+                return await asyncio.to_thread(self._compile_spec_with_ollama, query_text)
         except Exception:
-            return stub_spec_for(query_text)
+            pass
+        return stub_spec_for(query_text)
 
     async def judge_candidate(
         self,
@@ -43,15 +57,17 @@ class SpecAndFitJudge:
             return {
                 "judgment": "rejected",
                 "reason": f"Learned Redis relevance bar scored this at {learned_score:.2f}, below threshold.",
-                "reasoning": "The per-watch logistic model was trained from feedback labels stored in Redis and filtered this before spending a Claude call.",
+                "reasoning": "The per-watch logistic model was trained from feedback labels stored in Redis and filtered this before spending a model call.",
                 "criteria": [{"ok": False, "text": "Below learned relevance threshold"}],
             }
-        if not self.api_key:
-            return stub_judgment(watch, event, learned_score)
         try:
-            return await asyncio.to_thread(self._judge_with_claude, watch, event, learned_score)
+            if self.provider == "anthropic" and self.api_key:
+                return await asyncio.to_thread(self._judge_with_claude, watch, event, learned_score)
+            if self.provider == "ollama":
+                return await asyncio.to_thread(self._judge_with_ollama, watch, event, learned_score)
         except Exception:
-            return stub_judgment(watch, event, learned_score)
+            pass
+        return stub_judgment(watch, event, learned_score)
 
     def _compile_spec_with_claude(self, query_text: str) -> dict[str, list[str]]:
         from anthropic import Anthropic
@@ -125,6 +141,79 @@ class SpecAndFitJudge:
             ],
         )
         return _coerce_judgment(_message_text(message), watch, event, learned_score)
+
+    def _compile_spec_with_ollama(self, query_text: str) -> dict[str, list[str]]:
+        prompt = (
+            "Return only compact JSON with keys must_match and reject_cases. No prose.\n"
+            "Compile this watch query into BROAD Lookout matching criteria. "
+            "Keep it lenient: at most 2-3 must_match items capturing only the "
+            "CORE topic/intent of the query. Do NOT add narrow constraints that "
+            "are rarely present in event listings (exact coordinates, precise "
+            "registration_status, specific date windows). Add at most 2-3 "
+            "reject_cases for clearly-unwanted results only. "
+            "Every item in must_match and reject_cases MUST be a short plain-English "
+            "sentence (a string) — never a nested object or key-value pairs.\n"
+            f"Query: {query_text!r}.\n"
+            "Example for query 'in-person AI hackathons near SF':\n"
+            '{"must_match":["In-person event","AI/ML or data themed",'
+            '"Located near San Francisco"],'
+            '"reject_cases":["Online / virtual-only events","Pure crypto or Web3 events"]}\n'
+            "Now produce the JSON for the actual query above, same shape: "
+            "{\"must_match\":[...],\"reject_cases\":[...]}"
+        )
+        return _coerce_spec(self._ollama_chat(prompt))
+
+    def _judge_with_ollama(
+        self,
+        watch: dict[str, Any],
+        event: dict[str, Any],
+        learned_score: float | None,
+    ) -> dict[str, Any]:
+        prompt = (
+            "You are a relevance filter. Return only compact JSON. No prose.\n"
+            "Decide if the candidate is RELEVANT to the watcher's core interest in "
+            "watch_query. Treat must_match items as SOFT preferences: accept even if "
+            "some details (exact location, dates, format, registration state) are "
+            "missing or only partially match. But reject_cases are HARD gates: if the "
+            "candidate matches the topic/theme of ANY reject_case (e.g. it is online/"
+            "virtual and a reject_case says virtual, or it is crypto/web3 and a "
+            "reject_case says crypto/web3), you MUST reject it even if it also looks "
+            "topically related to the watch_query. When must_match and a reject_case "
+            "conflict, reject_cases win.\n"
+            "Example: watch_query='AI hackathons near SF', reject_cases include "
+            "'Online / virtual-only events'. Candidate is an online web3 meetup -> "
+            'judgment MUST be "rejected" (matches the virtual reject_case), even '
+            "though web3 sounds tech-adjacent.\n"
+            "return_shape: {\"judgment\":\"accepted|rejected\",\"reason\":\"one line\","
+            '"reasoning":"short explanation","criteria":[{"ok":true,"text":"criterion"}]}\n'
+            "Input:\n"
+            + json.dumps(
+                {
+                    "watch_query": watch.get("query_text", ""),
+                    "watch": watch,
+                    "candidate": event,
+                    "learned_score": learned_score,
+                }
+            )
+        )
+        return _coerce_judgment(self._ollama_chat(prompt), watch, event, learned_score)
+
+    def _ollama_chat(self, prompt: str) -> str:
+        import requests
+
+        resp = requests.post(
+            f"{self.ollama_host}/api/chat",
+            json={
+                "model": self.ollama_model,
+                "messages": [{"role": "user", "content": prompt}],
+                "format": "json",
+                "stream": False,
+                "options": {"temperature": 0},
+            },
+            timeout=60,
+        )
+        resp.raise_for_status()
+        return resp.json().get("message", {}).get("content", "")
 
 
 def stub_spec_for(query_text: str) -> dict[str, list[str]]:

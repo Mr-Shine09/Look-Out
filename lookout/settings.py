@@ -11,6 +11,9 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 class Settings:
     redis_url: str
     anthropic_api_key: str | None
+    judge_provider: str
+    ollama_host: str
+    ollama_model: str
     poll_seconds: int
     event_batch_size: int
     events_path: Path
@@ -48,6 +51,9 @@ def get_settings() -> Settings:
     return Settings(
         redis_url=os.getenv("REDIS_URL", "redis://localhost:6379"),
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY") or None,
+        judge_provider=os.getenv("LOOKOUT_JUDGE_PROVIDER", "auto").lower(),
+        ollama_host=os.getenv("LOOKOUT_OLLAMA_HOST", "http://localhost:11434"),
+        ollama_model=os.getenv("LOOKOUT_OLLAMA_MODEL", "llama3.1:8b"),
         poll_seconds=int(os.getenv("LOOKOUT_POLL_SECONDS", "5")),
         event_batch_size=int(os.getenv("LOOKOUT_EVENT_BATCH_SIZE", "3")),
         events_path=Path(os.getenv("LOOKOUT_EVENTS_PATH", str(ROOT_DIR / "data" / "events.json"))),

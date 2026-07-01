@@ -26,10 +26,10 @@ const CHANNELS = [
   {
     id: 'slack',
     icon: '#',
-    title: 'Slack / Discord',
+    title: 'Discord / Slack',
     blurb: 'A ping in your channel the moment a real one lands.',
-    targetLabel: 'Incoming webhook URL',
-    placeholder: 'https://hooks.slack.com/services/…',
+    targetLabel: 'Discord (or Slack) webhook URL',
+    placeholder: 'https://discord.com/api/webhooks/…',
   },
   {
     id: 'webhook',
