@@ -539,6 +539,11 @@ class LookoutEngine:
             "applied": cand.get("applied") == "1",
             "applied_at": cand.get("applied_at") or "",
             "timestamp": cand.get("timestamp") or now_iso(),
+            # Computed at read time, not stored: freshness is a moving target —
+            # a candidate accepted while upcoming can still go stale later just
+            # by sitting in the "surfaced" list while the clock moves on. This
+            # never rewrites the original judgment, only how it should render now.
+            "expired": event_has_passed({"starts_at": cand.get("starts_at")}),
         }
 
     def mark_applied(self, cid: str, watch_id: str | None = None) -> dict[str, Any]:

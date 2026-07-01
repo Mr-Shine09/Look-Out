@@ -264,6 +264,10 @@ export function SearchPage({ onFollow }) {
     };
   }
 
+  // Enter-in-input and the button click can both fire in the same gesture
+  // (press Enter, then reflexively click "Watch this" before the page has
+  // navigated away) — guard so a single submit never creates two watches.
+  let lastSubmitAt = 0;
   function commitSearch() {
     const query = input.value.trim();
     if (!query) {
@@ -272,6 +276,9 @@ export function SearchPage({ onFollow }) {
       setTimeout(() => input.classList.remove('search-input--nudge'), 400);
       return;
     }
+    const now = Date.now();
+    if (now - lastSubmitAt < 1500) return;
+    lastSubmitAt = now;
     onFollow?.({ query, spec: buildSpec(query) });
   }
 

@@ -79,6 +79,27 @@ export function StayPage({ api, onReport, onNewSearch }) {
   }
   setInterval(refreshLiveness, 1000);
 
+  // Safety-net resync: a local Ollama backfill can take minutes (vs. seconds
+  // for a hosted API), so a candidate can finish server-side and broadcast
+  // over the websocket before the page has settled on the right watchId
+  // (e.g. right after createWatch resolves). Poll the REST list periodically
+  // so results always land even if a live broadcast was missed or dropped.
+  async function resync() {
+    if (!scope.watchId) return;
+    try {
+      const existing = await api.getCandidates?.(scope.watchId);
+      let changed = false;
+      for (const cand of existing || []) {
+        if (!records.has(cand.id)) changed = true;
+        ingest(cand);
+      }
+      if (changed) render();
+    } catch (err) {
+      console.warn('[stay] resync failed', err);
+    }
+  }
+  setInterval(resync, 5000);
+
   // ---- Headline ratio ----------------------------------------------------
   const surfacedBig = el('span', { class: 'ratio-num ratio-num--surfaced', text: '0' });
   const silencedBig = el('span', { class: 'ratio-num ratio-num--silenced', text: '0' });
@@ -90,6 +111,7 @@ export function StayPage({ api, onReport, onNewSearch }) {
   // ---- Secondary stat tiles ----------------------------------------------
   const dupNum = el('span', { class: 'stat-num', text: '0' });
   const offNum = el('span', { class: 'stat-num', text: '0' });
+  const expiredNum = el('span', { class: 'stat-num', text: '0' });
   const seenNum = el('span', { class: 'stat-num', text: '0' });
 
   let showSilenced = false;
@@ -103,14 +125,17 @@ export function StayPage({ api, onReport, onNewSearch }) {
   // ---- Stop / resume the active watch ------------------------------------
   const stopToggle = el('button', { class: 'ghost-btn', type: 'button' }, ['Stop watching']);
   function setWatchStatusUI(status) {
+    // "compiling" is a normal transitional state (spec not compiled yet), not
+    // a paused one — only the explicit "stopped" status should read as paused.
     watchStatus = status;
-    stopToggle.textContent = status === 'watching' ? 'Stop watching' : 'Resume watching';
-    liveDot.classList.toggle('live-dot--paused', status !== 'watching');
-    liveCheckedEl.textContent = status === 'watching' ? liveCheckedEl.textContent : 'stopped';
+    const stopped = status === 'stopped';
+    stopToggle.textContent = stopped ? 'Resume watching' : 'Stop watching';
+    liveDot.classList.toggle('live-dot--paused', stopped);
+    liveCheckedEl.textContent = stopped ? 'stopped' : liveCheckedEl.textContent;
   }
   stopToggle.addEventListener('click', async () => {
     if (!scope.watchId) return;
-    const next = watchStatus === 'watching' ? 'stopped' : 'watching';
+    const next = watchStatus === 'stopped' ? 'watching' : 'stopped';
     stopToggle.disabled = true;
     try {
       await api.setWatchStatus?.(scope.watchId, next);
@@ -130,9 +155,21 @@ export function StayPage({ api, onReport, onNewSearch }) {
 
   const feed = el('div', { class: 'stay-feed' });
 
+  // Freshness is a moving target: a candidate accepted while still upcoming
+  // can go stale later just from sitting in the "surfaced" list while the
+  // clock moves on. Recomputed every render (not just at fetch time) so an
+  // accepted item quietly drops out of "surfaced" the moment its start time
+  // passes, without needing a refetch.
+  function isExpired(cand) {
+    if (cand.expired === true) return true;
+    if (!cand.starts_at) return false;
+    const dt = new Date(cand.starts_at);
+    return !Number.isNaN(dt.getTime()) && dt.getTime() < Date.now();
+  }
+
   function classify(cand) {
     if (cand.state === 'duplicate') return 'duplicate';
-    if (cand.judgment === 'accepted') return 'surfaced';
+    if (cand.judgment === 'accepted') return isExpired(cand) ? 'expired' : 'surfaced';
     return 'offtopic';
   }
 
@@ -140,21 +177,24 @@ export function StayPage({ api, onReport, onNewSearch }) {
     let surfaced = 0;
     let dup = 0;
     let off = 0;
+    let expired = 0;
     for (const cand of records.values()) {
       const k = classify(cand);
       if (k === 'surfaced') surfaced += 1;
       else if (k === 'duplicate') dup += 1;
+      else if (k === 'expired') expired += 1;
       else off += 1;
     }
-    return { surfaced, dup, off, silenced: dup + off, seen: records.size };
+    return { surfaced, dup, off, expired, silenced: dup + off + expired, seen: records.size };
   }
 
   function updateStats() {
-    const { surfaced, dup, off, silenced, seen } = counts();
+    const { surfaced, dup, off, expired, silenced, seen } = counts();
     animateCount(surfacedBig, surfaced);
     animateCount(silencedBig, silenced);
     animateCount(dupNum, dup);
     animateCount(offNum, off);
+    animateCount(expiredNum, expired);
     animateCount(seenNum, seen);
 
     const total = surfaced + silenced;
@@ -192,6 +232,7 @@ export function StayPage({ api, onReport, onNewSearch }) {
     const surfaced = all.filter((c) => classify(c) === 'surfaced');
     const duplicates = all.filter((c) => classify(c) === 'duplicate');
     const offtopic = all.filter((c) => classify(c) === 'offtopic');
+    const expired = all.filter((c) => classify(c) === 'expired');
 
     if (!all.length) {
       feed.append(
@@ -217,6 +258,7 @@ export function StayPage({ api, onReport, onNewSearch }) {
     if (showSilenced) {
       appendSection(duplicates, { label: 'Silenced — semantic duplicates', variant: 'dup', silenced: true });
       appendSection(offtopic, { label: 'Silenced — off-topic', variant: 'off', silenced: true });
+      appendSection(expired, { label: 'Silenced — event has already passed', variant: 'expired', silenced: true });
     }
   }
 
@@ -310,6 +352,7 @@ export function StayPage({ api, onReport, onNewSearch }) {
     el('div', { class: 'stay-stats' }, [
       el('div', { class: 'stat stat--dup' }, [dupNum, el('span', { class: 'stat-label', text: 'duplicates silenced' })]),
       el('div', { class: 'stat stat--off' }, [offNum, el('span', { class: 'stat-label', text: 'off-topic filtered' })]),
+      el('div', { class: 'stat stat--expired' }, [expiredNum, el('span', { class: 'stat-label', text: 'already passed' })]),
       el('div', { class: 'stat stat--seen' }, [seenNum, el('span', { class: 'stat-label', text: 'total updates seen' })]),
     ]),
     feed,

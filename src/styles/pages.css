@@ -659,7 +659,8 @@
   color: var(--signal);
 }
 .stat--dup .stat-num,
-.stat--off .stat-num {
+.stat--off .stat-num,
+.stat--expired .stat-num {
   color: var(--text-dim);
 }
 .stat--seen .stat-num {
@@ -694,11 +695,17 @@
 .feed-section-label--off {
   color: var(--text-faint);
 }
+.feed-section-label--expired {
+  color: var(--text-faint);
+}
 .card--dup {
   border-left: 3px solid #6aa0ff;
 }
 .card--off {
   border-left: 3px solid var(--reject);
+}
+.card--expired {
+  border-left: 3px solid var(--text-faint);
 }
 .stay-feed {
   display: flex;
