@@ -32,7 +32,7 @@ function animateCount(node, to) {
  * A "show what it silenced" toggle reveals the suppressed items so the
  * mechanism is provable live.
  */
-export function StayPage({ api, onReport }) {
+export function StayPage({ api, onReport, onNewSearch }) {
   const pipeline = Pipeline();
   pipeline.node.hidden = true; // on-demand: only appears once the user hits "act"
   const curve = PrecisionCurve();
@@ -40,6 +40,7 @@ export function StayPage({ api, onReport }) {
   let scope = { watchId: null, title: 'your watch' };
   const records = new Map(); // cid -> candidate
   let lastCheckedAt = Date.now();
+  let watchStatus = 'watching';
 
   const handlers = {
     onFeedback: (candId, label, watchId) => api.sendFeedback(candId, label, watchId || scope.watchId),
@@ -98,6 +99,34 @@ export function StayPage({ api, onReport }) {
     silenceToggle.textContent = showSilenced ? 'Hide silenced' : 'Show what it silenced';
     render();
   });
+
+  // ---- Stop / resume the active watch ------------------------------------
+  const stopToggle = el('button', { class: 'ghost-btn', type: 'button' }, ['Stop watching']);
+  function setWatchStatusUI(status) {
+    watchStatus = status;
+    stopToggle.textContent = status === 'watching' ? 'Stop watching' : 'Resume watching';
+    liveDot.classList.toggle('live-dot--paused', status !== 'watching');
+    liveCheckedEl.textContent = status === 'watching' ? liveCheckedEl.textContent : 'stopped';
+  }
+  stopToggle.addEventListener('click', async () => {
+    if (!scope.watchId) return;
+    const next = watchStatus === 'watching' ? 'stopped' : 'watching';
+    stopToggle.disabled = true;
+    try {
+      await api.setWatchStatus?.(scope.watchId, next);
+      setWatchStatusUI(next);
+    } catch (err) {
+      console.warn('[stay] setWatchStatus failed', err);
+    } finally {
+      stopToggle.disabled = false;
+    }
+  });
+
+  const newSearchBtn = el(
+    'button',
+    { class: 'ghost-btn', type: 'button', onClick: () => onNewSearch?.() },
+    ['New search']
+  );
 
   const feed = el('div', { class: 'stay-feed' });
 
@@ -214,6 +243,7 @@ export function StayPage({ api, onReport }) {
     pipeline.reset();
     pipeline.node.hidden = true;
     lastCheckedAt = Date.now();
+    setWatchStatusUI('watching');
     refreshLiveness();
     render();
     try {
@@ -221,6 +251,15 @@ export function StayPage({ api, onReport }) {
       for (const cand of existing || []) ingest(cand);
     } catch (err) {
       console.warn('[stay] load failed', err);
+    }
+    if (scope.watchId) {
+      try {
+        const watches = await api.getWatches?.();
+        const match = watches?.find((w) => w.id === scope.watchId);
+        if (match?.status) setWatchStatusUI(match.status);
+      } catch (err) {
+        console.warn('[stay] watch status load failed', err);
+      }
     }
     render();
     loadCurve();
@@ -246,6 +285,8 @@ export function StayPage({ api, onReport }) {
         el('h1', { class: 'stay-title head' }, ['Lookout is watching ', topicEl, ' — and staying quiet.']),
       ]),
       el('div', { class: 'stay-head-actions' }, [
+        newSearchBtn,
+        stopToggle,
         silenceToggle,
         el('button', { class: 'primary-btn', type: 'button', onClick: () => onReport?.(scope) }, ['Get these delivered →']),
       ]),

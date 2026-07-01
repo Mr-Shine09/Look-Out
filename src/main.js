@@ -62,6 +62,7 @@ const stay = StayPage({
     scope = { ...scope, ...s };
     router.navigate('report');
   },
+  onNewSearch: () => router.navigate('search'),
 });
 
 // ---- Layout ------------------------------------------------------------

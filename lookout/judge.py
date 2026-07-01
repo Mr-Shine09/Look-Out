@@ -43,8 +43,8 @@ class SpecAndFitJudge:
                 return await asyncio.to_thread(self._compile_spec_with_claude, query_text)
             if self.provider == "ollama":
                 return await asyncio.to_thread(self._compile_spec_with_ollama, query_text)
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"[judge] {self.provider} compile_spec failed, falling back to stub: {type(exc).__name__}: {exc}")
         return stub_spec_for(query_text)
 
     async def judge_candidate(
@@ -65,8 +65,9 @@ class SpecAndFitJudge:
                 return await asyncio.to_thread(self._judge_with_claude, watch, event, learned_score)
             if self.provider == "ollama":
                 return await asyncio.to_thread(self._judge_with_ollama, watch, event, learned_score)
-        except Exception:
-            pass
+        except Exception as exc:
+            title = str(event.get("title") or event.get("id") or "")[:60]
+            print(f"[judge] {self.provider} judge_candidate failed for {title!r}, falling back to stub: {type(exc).__name__}: {exc}")
         return stub_judgment(watch, event, learned_score)
 
     def _compile_spec_with_claude(self, query_text: str) -> dict[str, list[str]]:
@@ -170,20 +171,34 @@ class SpecAndFitJudge:
         learned_score: float | None,
     ) -> dict[str, Any]:
         prompt = (
-            "You are a relevance filter. Return only compact JSON. No prose.\n"
-            "Decide if the candidate is RELEVANT to the watcher's core interest in "
-            "watch_query. Treat must_match items as SOFT preferences: accept even if "
-            "some details (exact location, dates, format, registration state) are "
-            "missing or only partially match. But reject_cases are HARD gates: if the "
-            "candidate matches the topic/theme of ANY reject_case (e.g. it is online/"
-            "virtual and a reject_case says virtual, or it is crypto/web3 and a "
-            "reject_case says crypto/web3), you MUST reject it even if it also looks "
-            "topically related to the watch_query. When must_match and a reject_case "
-            "conflict, reject_cases win.\n"
-            "Example: watch_query='AI hackathons near SF', reject_cases include "
-            "'Online / virtual-only events'. Candidate is an online web3 meetup -> "
-            'judgment MUST be "rejected" (matches the virtual reject_case), even '
-            "though web3 sounds tech-adjacent.\n"
+            "You are a STRICT relevance filter for an alert-suppression product. "
+            "Silence is preferred over noise: when unsure, REJECT rather than ACCEPT. "
+            "Return only compact JSON. No prose.\n"
+            "Rules:\n"
+            "1. Judge each must_match item against the candidate's actual title/"
+            "description text. Only count an item as satisfied if there is a clear, "
+            "specific positive signal for it — a generic 'in-person event in San "
+            "Francisco, registration open' listing does NOT by itself satisfy a "
+            "topic/theme must_match item (e.g. 'AI/ML themed', 'hackathon format'). "
+            "If the title/description gives no real evidence for a topic/theme "
+            "must_match item, treat it as NOT satisfied.\n"
+            "2. Peripheral must_match items about incidental details (exact address, "
+            "precise date/time, exact registration wording) CAN be treated as "
+            "satisfied by default when merely absent — leniency applies only to "
+            "these, never to topic/theme items.\n"
+            "3. ACCEPT only if ALL must_match items are satisfied. REJECT if any "
+            "must_match item is unsatisfied, or if the candidate matches the topic "
+            "of ANY reject_case (even if it also looks related to watch_query).\n"
+            "Worked examples (same shape as this task):\n"
+            '- must_match includes "AI/ML or machine learning themed". Candidate '
+            'title "Read in the Park - SF" with generic description -> no AI/ML '
+            'evidence at all -> judgment "rejected".\n'
+            '- must_match includes "AI/ML or machine learning themed". Candidate '
+            'title "World\'s Largest Craft Club - SF Edition!" -> a craft/hobby '
+            'meetup, no AI/ML evidence -> judgment "rejected".\n'
+            '- must_match includes "AI/ML or machine learning themed". Candidate '
+            'title "AI Engineer Kids Day" -> explicit AI evidence in the title -> '
+            'satisfied (still check other must_match items and reject_cases).\n'
             "return_shape: {\"judgment\":\"accepted|rejected\",\"reason\":\"one line\","
             '"reasoning":"short explanation","criteria":[{"ok":true,"text":"criterion"}]}\n'
             "Input:\n"
@@ -210,7 +225,10 @@ class SpecAndFitJudge:
                 "stream": False,
                 "options": {"temperature": 0},
             },
-            timeout=60,
+            # Ollama serves one request at a time per model, so a burst of
+            # candidates queues up server-side — generous timeout to avoid
+            # spurious falls to the stub judge under concurrent watch backfills.
+            timeout=180,
         )
         resp.raise_for_status()
         return resp.json().get("message", {}).get("content", "")

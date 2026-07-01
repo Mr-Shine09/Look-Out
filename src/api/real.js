@@ -96,6 +96,13 @@ export function createRealApi(baseUrl = '') {
       }));
     },
 
+    async setWatchStatus(watchId, status) {
+      return normalizeWatch(await request(`/api/watches/${encodeURIComponent(watchId)}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      }));
+    },
+
     async getCurve() {
       return asArray(await request('/api/curve')).map(normalizeCurvePoint);
     },

@@ -248,6 +248,13 @@ export function createMockApi() {
     return { id: watchId, ...(watch || {}) };
   }
 
+  async function setWatchStatus(watchId, status) {
+    await tick(80);
+    const watch = watches.find((w) => w.id === watchId);
+    if (watch) watch.status = status;
+    return { id: watchId, ...(watch || {}) };
+  }
+
   // ---- Pipeline (V3) ----------------------------------------------------
   function triggerPipeline(candId) {
     const cand = candidates.get(candId);
@@ -333,6 +340,7 @@ export function createMockApi() {
     applyCandidate,
     getCandidates,
     updateSpec,
+    setWatchStatus,
     triggerPipeline,
     injectLiveFire,
     start,

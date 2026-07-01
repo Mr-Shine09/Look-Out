@@ -103,6 +103,28 @@ class LookoutEngine:
         seen_key = self.seen_key(watch_id)
         key = self.candidate_key(watch_id, cid)
 
+        # Default to "upcoming or happening now" only — never spend a judge call
+        # surfacing something whose start time has already passed.
+        if not (self.redis.sismember(seen_key, event_token) or self.redis.sismember(seen_key, content_hash)) and event_has_passed(event):
+            judgment = {
+                "judgment": "rejected",
+                "reason": "Event has already started/passed.",
+                "reasoning": "Deterministic freshness check — Lookout only surfaces upcoming or in-progress events by default.",
+                "criteria": [{"ok": False, "text": "Starts in the future (or is ongoing)"}],
+            }
+            self._store_candidate(
+                watch_id=watch_id,
+                cid=cid,
+                event=event,
+                embedding=embedding,
+                content_hash=content_hash,
+                state="new",
+                judgment=judgment,
+                duplicate_of=None,
+            )
+            self.redis.sadd(seen_key, event_token, content_hash)
+            return {"status": "DROP", "id": cid, "reason": "event already passed"}
+
         if self.redis.sismember(seen_key, event_token) or self.redis.sismember(seen_key, content_hash):
             existing = decode_hash(self.redis.hgetall(key))
             if existing and has_watched_change(existing, event):
@@ -288,6 +310,12 @@ class LookoutEngine:
                 "status": "watching",
             },
         )
+        return self.get_watch(watch_id)
+
+    def set_watch_status(self, watch_id: str, status: str) -> dict[str, Any] | None:
+        if not self.get_watch(watch_id):
+            return None
+        self.redis.hset(self.watch_key(watch_id), mapping={"status": status})
         return self.get_watch(watch_id)
 
     def get_watches(self) -> list[dict[str, Any]]:
@@ -576,6 +604,24 @@ def hash_event(event: dict[str, Any]) -> str:
 
 def has_watched_change(existing: dict[str, Any], event: dict[str, Any]) -> bool:
     return any(str(existing.get(field, "")) != str(event.get(field, "")) for field in WATCH_FIELDS)
+
+
+def event_has_passed(event: dict[str, Any]) -> bool:
+    """True only when starts_at parses cleanly and is confidently in the past.
+
+    Unknown/unparseable starts_at (e.g. search-source events with no date) is
+    treated as "not confidently past" so we never reject on missing data.
+    """
+    raw = str(event.get("starts_at") or "").strip()
+    if not raw:
+        return False
+    try:
+        starts_at = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if starts_at.tzinfo is None:
+        starts_at = starts_at.replace(tzinfo=timezone.utc)
+    return starts_at < datetime.now(timezone.utc)
 
 
 def parse_search_fields(raw: Any) -> dict[str, Any]:

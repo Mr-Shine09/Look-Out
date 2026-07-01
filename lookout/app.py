@@ -17,7 +17,7 @@ from .judge import SpecAndFitJudge
 from .learning import LearningService
 from .redis_store import RedisStore
 from .notify import Notifier
-from .schemas import DeliveryUpdate, FeedbackCreate, ProfileUpdate, SpecUpdate, WatchCreate
+from .schemas import DeliveryUpdate, FeedbackCreate, ProfileUpdate, SpecUpdate, WatchCreate, WatchStatusUpdate
 from .settings import get_settings
 from .tracing import setup_sentry, setup_tracing
 from .websocket import FeedHub
@@ -194,6 +194,14 @@ async def update_watch_spec(watch_id: str, payload: SpecUpdate) -> dict[str, Any
             "reject_cases": watch["spec"]["reject_cases"],
         }
     )
+    return watch
+
+
+@app.patch("/api/watches/{watch_id}/status")
+async def update_watch_status(watch_id: str, payload: WatchStatusUpdate) -> dict[str, Any]:
+    watch = engine().set_watch_status(watch_id, payload.status)
+    if not watch:
+        raise HTTPException(status_code=404, detail="watch not found")
     return watch
 
 
