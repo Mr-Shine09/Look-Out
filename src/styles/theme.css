@@ -1,58 +1,57 @@
-/* Lookout design system — "Watercolor Calm".
-   Warm paper (#fbf8f2) under soft, breathing watercolor washes; friendly
-   cornflower blue is the brand, a warm coral is the rare "this one matters"
-   signal. Concept: the paper is the silence Lookout keeps; a single coral
-   brushstroke is the one alert it surfaces. Elegant-but-happy serif (Fraunces)
-   for headlines, clean grotesque (Inter) for UI. Calm, organic micro-motion.
-   Reused across every component so the dashboard reads as one product. */
+/* Lookout design system — "Field Notes".
+   Serene, warm minimalism: flat ivory paper, warm near-black ink, one clay
+   accent for the single alert that matters, muted olive for the quiet act of
+   watching. Bookish serif (Lora) for headlines, plainspoken grotesque
+   (Archivo) for UI. No glass, no gradients, no washes — the calm IS the
+   design. Reused across every component so the product reads as one thing. */
 
 :root {
-  /* Core palette — Watercolor Calm: warm paper + cornflower + coral */
-  --void: #ffffff; /* knockout text/icon color on accents */
-  --obsidian: #fbf8f2; /* warm watercolor paper — app background */
-  --void-2: #fffdf9; /* raised surface / input fill */
+  /* Core palette — ivory paper + warm ink */
+  --void: #faf9f5; /* knockout text/icon color on accents */
+  --obsidian: #faf9f5; /* ivory paper — app background */
+  --void-2: #f4f3ec; /* recessed surface / input fill */
   --panel: #ffffff; /* card / panel surface */
-  --panel-2: #f3eee4; /* warm hover / nested surface */
-  --line: rgba(42, 45, 52, 0.10); /* hairline borders */
-  --line-strong: rgba(42, 45, 52, 0.18);
+  --panel-2: #efede3; /* warm hover / nested surface */
+  --line: rgba(20, 20, 19, 0.1); /* hairline borders */
+  --line-strong: rgba(20, 20, 19, 0.2);
 
-  /* Accent — cornflower blue (brand / active / watching) */
-  --scan: #5b8def;
-  --scan-deep: #2f5fd0;
-  --scan-dim: rgba(91, 141, 239, 0.14);
-  --glow: rgba(91, 141, 239, 0.40);
+  /* Accent — muted olive: the quiet, watchful state (brand / active) */
+  --scan: #788c5d;
+  --scan-deep: #5f7349;
+  --scan-dim: rgba(120, 140, 93, 0.13);
+  --glow: rgba(120, 140, 93, 0.3);
 
-  /* Signal — warm coral: the one alert that matters (surfaced) */
-  --signal: #ff8a5b;
-  --signal-dim: rgba(255, 138, 91, 0.15);
+  /* Signal — clay: the one alert that matters (surfaced) */
+  --signal: #d97757;
+  --signal-dim: rgba(217, 119, 87, 0.13);
 
   /* Suppressed / muted — fades into the paper */
-  --reject: #a6abb5;
-  --reject-dim: rgba(42, 45, 52, 0.05);
-  --danger: #e5484d;
+  --reject: #b0aea5;
+  --reject-dim: rgba(20, 20, 19, 0.05);
+  --danger: #bf4d3d;
 
-  /* Watercolor wash palette — background blooms + category tags */
-  --wash-sky: #abd3f5;
-  --wash-blush: #f8b9c4;
-  --wash-peach: #fbd3a6;
-  --wash-mint: #a8e0c9;
-  --wash-lilac: #c9b8f0;
+  /* Support tones — category tags, mock thumbnails */
+  --wash-sky: #c6d7e8;
+  --wash-blush: #e6cabb;
+  --wash-peach: #ebdbbc;
+  --wash-mint: #cfd8c3;
+  --wash-lilac: #d9d4c9;
 
-  /* Text — soft charcoal, never harsh black */
-  --text: #2a2d34;
-  --text-dim: #5d626c;
-  --text-faint: #969ba6;
+  /* Text — warm ink, never cold black */
+  --text: #141413;
+  --text-dim: #57554e;
+  --text-faint: #8f8d84;
 
   /* Typography */
-  --font-mono: 'Inter', system-ui, sans-serif; /* labels: clean grotesque caps */
-  --font-head: 'Fraunces', Georgia, 'Times New Roman', serif;
-  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Fraunces', Georgia, serif; /* the big elegant headlines */
+  --font-mono: 'Archivo', system-ui, -apple-system, sans-serif; /* labels / UI */
+  --font-head: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-body: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Lora', Georgia, serif; /* the big bookish headlines */
   --font-lcd: var(--font-display);
 
-  /* Geometry — soft / premium */
-  --radius: 16px;
-  --radius-sm: 10px;
+  /* Geometry — soft / unhurried */
+  --radius: 14px;
+  --radius-sm: 9px;
   --gap: 18px;
 
   /* Motion */
@@ -82,35 +81,19 @@ body {
   overflow-x: hidden;
 }
 
-/* Faint static wash base — the animated watercolor landscape canvas
-   (lib/backdrop.js, z-index -2) carries the primary painted scene. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: -25vmax;
-  z-index: -3;
-  pointer-events: none;
-  background:
-    radial-gradient(48vmax 34vmax at 20% 8%, rgba(251, 211, 166, 0.16), transparent 64%),
-    radial-gradient(42vmax 32vmax at 84% 10%, rgba(248, 185, 196, 0.14), transparent 66%),
-    radial-gradient(38vmax 32vmax at 50% 50%, rgba(171, 211, 245, 0.10), transparent 68%);
-  filter: blur(46px) saturate(1.04);
-}
-
-/* Fine paper tooth over the washes */
+/* Fine paper tooth — the only texture. Everything else is flat ivory. */
 body::after {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  opacity: 0.05;
+  opacity: 0.04;
   mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body::before { animation: none; }
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
 }
 
@@ -135,10 +118,10 @@ body::after {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
 }
-/* Watercolor wash-in for scroll reveals — soft blur dissolve */
+/* Soft rise for scroll reveals — no blur theatrics, just settle into place */
 @keyframes wash-in {
-  from { opacity: 0; transform: translateY(22px); filter: blur(7px); }
-  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 /* Brushstroke wipe — used for the surfaced "one alert" accent */
 @keyframes brush-in {
@@ -151,7 +134,7 @@ body::after {
   opacity: 0;
 }
 .reveal.reveal--in {
-  animation: wash-in 0.7s var(--ease) both;
+  animation: wash-in 0.6s var(--ease) both;
 }
 
 /* Utility classes */
@@ -160,7 +143,7 @@ body::after {
 }
 .head {
   font-family: var(--font-head);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 .lcd {
   font-family: var(--font-display);

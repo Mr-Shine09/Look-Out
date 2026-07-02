@@ -6,12 +6,12 @@ import { el } from './lib/dom.js';
 import { createApi } from './api/index.js';
 import { pingSurfaced, requestNotifyPermission } from './lib/notify.js';
 import { createRouter } from './lib/router.js';
-import { mountBackdrop } from './lib/backdrop.js';
 import { Header } from './components/header.js';
 import { SearchPage } from './components/searchPage.js';
 import { StayPage } from './components/stayPage.js';
 import { ReportPage } from './components/reportPage.js';
 import { OverviewPage } from './components/overviewPage.js';
+import { DevPage } from './components/devPage.js';
 
 const api = createApi();
 
@@ -52,10 +52,28 @@ function composeQuery(query, spec) {
   return `${query} (constraints — ${clauses.join('; ')})`;
 }
 
-// ---- Pages -------------------------------------------------------------
-const header = Header({ onNavigate: (key) => router.navigate(key) });
+// ---- Developer window flag ----------------------------------------------
+// The dev window is friction-gated, not secured (static bundle): visiting
+// #/dev?key=oak once sets a local flag; only then does the Dev nav item and
+// route exist. Clear localStorage.lookoutDev to hide it again.
+if (/^#\/dev\?key=oak$/.test(window.location.hash)) {
+  localStorage.setItem('lookoutDev', '1');
+  window.location.hash = '#/dev';
+}
+const devEnabled = localStorage.getItem('lookoutDev') === '1';
 
-const overview = OverviewPage({ api });
+// ---- Pages -------------------------------------------------------------
+const header = Header({ onNavigate: (key) => router.navigate(key), showDev: devEnabled });
+
+const overview = OverviewPage({
+  api,
+  onOpenWatch: ({ watchId, title }) => {
+    scope = { watchId, title: title || 'your watch' };
+    router.navigate('stay');
+  },
+  onNewSearch: () => router.navigate('search'),
+});
+const dev = devEnabled ? DevPage({ api }) : null;
 const search = SearchPage({ api, onFollow: handleFollow });
 const report = ReportPage({ api, onBack: (s) => goStay(s) });
 const stay = StayPage({
@@ -76,7 +94,7 @@ const stay = StayPage({
 const app = document.getElementById('app');
 app.append(
   header.node,
-  el('main', { class: 'app-main' }, [overview.node, search.node, stay.node, report.node])
+  el('main', { class: 'app-main' }, [overview.node, search.node, stay.node, report.node, dev?.node])
 );
 
 // ---- Router ------------------------------------------------------------
@@ -88,16 +106,18 @@ const router = createRouter({
       node: overview.node,
       onShow: () => {
         header.setActive('overview');
+        dev?.hide();
         overview.show();
       },
     },
-    { key: 'search', node: search.node, onShow: () => { header.setActive('search'); overview.hide(); } },
+    { key: 'search', node: search.node, onShow: () => { header.setActive('search'); overview.hide(); dev?.hide(); } },
     {
       key: 'stay',
       node: stay.node,
       onShow: () => {
         header.setActive('stay');
         overview.hide();
+        dev?.hide();
         stay.show(scope);
       },
     },
@@ -107,9 +127,23 @@ const router = createRouter({
       onShow: () => {
         header.setActive('report');
         overview.hide();
+        dev?.hide();
         report.show(scope);
       },
     },
+    ...(dev
+      ? [
+          {
+            key: 'dev',
+            node: dev.node,
+            onShow: () => {
+              header.setActive('dev');
+              overview.hide();
+              dev.show();
+            },
+          },
+        ]
+      : []),
   ],
 });
 
@@ -144,6 +178,7 @@ api.subscribe((msg) => {
     case 'candidate':
       stay.handleCandidate(msg);
       overview.handleCandidate(msg);
+      dev?.handleCandidate(msg);
       // Live surfaced match (flagged server-side) -> ping. Backfill never sets notify.
       if (msg.notify && msg.judgment === 'accepted') pingSurfaced(msg);
       break;
@@ -155,6 +190,7 @@ api.subscribe((msg) => {
       break;
     case 'watch_deleted':
       overview.dropWatch(msg.watch_id);
+      dev?.dropWatch(msg.watch_id);
       break;
     case 'spec_ready':
       break;
@@ -189,7 +225,6 @@ function registerReveals() {
 }
 
 // ---- Bootstrap ---------------------------------------------------------
-mountBackdrop();
 router.start();
 api.start();
 registerReveals();

@@ -1,97 +1,39 @@
-import { el } from '../lib/dom.js';
+import { el, clear } from '../lib/dom.js';
 import { EventStrip } from './eventStrip.js';
-import { tally } from '../lib/classify.js';
+import { classify } from '../lib/classify.js';
 
-/** Tween an integer element toward `to` (cubic ease-out). */
-function animateCount(node, to) {
-  const from = parseInt(node.textContent, 10) || 0;
-  // requestAnimationFrame is throttled in a hidden tab, which would freeze the
-  // count mid-tween; when not visible, just land on the final value.
-  if (from === to || document.hidden) {
-    node.textContent = String(to);
-    return;
-  }
-  const start = performance.now();
-  const dur = 480;
-  function step(now) {
-    const t = Math.min(1, (now - start) / dur);
-    const eased = 1 - Math.pow(1 - t, 3);
-    node.textContent = String(Math.round(from + (to - from) * eased));
-    if (t < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
+function timeAgo(iso) {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return '';
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
 }
 
 /**
- * OVERVIEW — the whole picture at a glance.
+ * OVERVIEW — the functional front page: what Lookout is doing for you.
  *
- * Aggregates every candidate across every watch (not scoped to one) into the
- * suppression story: how much Lookout surfaced vs. silenced, broken down by
- * reason, plus how many sources and watches are live. Numbers update live —
- * a websocket candidate push or the periodic REST poll moves them without a
- * refresh. Buckets come from the shared classifier, so they match Stay exactly.
+ * Not a metrics dashboard. It shows your watches (status + what each has
+ * surfaced) and the most recent events that actually made it through the
+ * suppression engine, with click-through to Stay. Aggregate engine metrics
+ * live in the hidden developer window instead (devPage.js).
  */
-export function OverviewPage({ api }) {
-  const records = new Map(); // cid -> candidate (across all watches)
-  let watchCount = 0;
-  let activeWatchCount = 0;
+export function OverviewPage({ api, onOpenWatch, onNewSearch }) {
+  const records = new Map(); // watch_id::id -> candidate (across all watches)
+  let watches = [];
   let pollTimer = null;
   let active = false;
 
   const strip = EventStrip({ api, label: 'Live from the sources Lookout watches' });
 
-  // ---- Headline ratio (surfaced vs silenced) -----------------------------
-  const surfacedBig = el('span', { class: 'ratio-num ratio-num--surfaced', text: '0' });
-  const silencedBig = el('span', { class: 'ratio-num ratio-num--silenced', text: '0' });
-  const barSurfaced = el('span', { class: 'ratio-seg ratio-seg--surfaced' });
-  const barSilenced = el('span', { class: 'ratio-seg ratio-seg--silenced' });
-  const ratioBar = el('div', { class: 'ratio-bar' }, [barSurfaced, barSilenced]);
-  const ratioSub = el('p', { class: 'ratio-sub', text: 'Nothing scanned yet.' });
-
-  // ---- Stat tiles --------------------------------------------------------
-  const dupNum = el('span', { class: 'stat-num', text: '0' });
-  const offNum = el('span', { class: 'stat-num', text: '0' });
-  const expiredNum = el('span', { class: 'stat-num', text: '0' });
-  const seenNum = el('span', { class: 'stat-num', text: '0' });
-  const watchesNum = el('span', { class: 'stat-num', text: '0' });
-  const sourcesNum = el('span', { class: 'stat-num', text: '0' });
-
-  function sourcesSeen() {
-    const set = new Set();
-    for (const c of records.values()) if (c.source) set.add(c.source);
-    return set.size;
-  }
-
-  function render() {
-    const { surfaced, dup, off, expired, silenced, seen } = tally(records.values());
-    animateCount(surfacedBig, surfaced);
-    animateCount(silencedBig, silenced);
-    animateCount(dupNum, dup);
-    animateCount(offNum, off);
-    animateCount(expiredNum, expired);
-    animateCount(seenNum, seen);
-    animateCount(watchesNum, activeWatchCount);
-    animateCount(sourcesNum, sourcesSeen());
-
-    const total = surfaced + silenced;
-    barSurfaced.style.flex = String(surfaced);
-    barSilenced.style.flex = String(silenced);
-    ratioBar.classList.toggle('ratio-bar--empty', total === 0);
-
-    if (!seen) {
-      ratioSub.textContent = 'Nothing scanned yet — create a watch to see the suppression start.';
-    } else {
-      const sPct = total ? Math.round((surfaced / total) * 100) : 0;
-      ratioSub.textContent = `Across ${watchCount} watch${watchCount === 1 ? '' : 'es'}, Lookout scanned ${seen} update${
-        seen === 1 ? '' : 's'
-      } and surfaced only ${surfaced === 0 ? 'zero' : `${sPct}%`} — the rest stayed silent.`;
-    }
-  }
+  const watchCountCap = el('span', { class: 'count', text: '' });
+  const watchList = el('div', { class: 'watch-list' });
+  const recentList = el('div', { class: 'recent-list' });
 
   // The backend reuses one event `id` across every watch that judged it, so
-  // the same event appears as many rows (one judgment per watch). Key the
-  // aggregate by watch_id + id so "total scanned" matches GET /api/candidates
-  // exactly instead of collapsing cross-watch judgments into one.
+  // key the aggregate by watch_id + id (one judgment per watch).
   const keyOf = (cand) => `${cand.watch_id || ''}::${cand.id}`;
 
   function ingest(cand) {
@@ -102,9 +44,95 @@ export function OverviewPage({ api }) {
     return !had;
   }
 
+  function surfacedCountFor(watchId) {
+    let n = 0;
+    for (const c of records.values()) {
+      if (c.watch_id === watchId && classify(c) === 'surfaced') n += 1;
+    }
+    return n;
+  }
+
+  function renderWatches() {
+    clear(watchList);
+    watchCountCap.textContent = watches.length ? `· ${watches.length}` : '';
+    if (!watches.length) {
+      watchList.append(
+        el('div', { class: 'ov-empty' }, [
+          el('span', { text: 'Nothing is being watched yet. Tell Lookout what to look out for and it will stay quiet until something matters.' }),
+          el('button', { class: 'primary-btn', type: 'button', onClick: () => onNewSearch?.() }, ['Start a search →']),
+        ])
+      );
+      return;
+    }
+    for (const w of watches) {
+      const status = w.status || 'watching';
+      const surfaced = surfacedCountFor(w.id);
+      const dotClass =
+        status === 'stopped' ? 'watch-dot watch-dot--stopped'
+        : status === 'compiling' ? 'watch-dot watch-dot--compiling'
+        : 'watch-dot';
+      watchList.append(
+        el(
+          'button',
+          {
+            class: 'watch-row',
+            type: 'button',
+            onClick: () => onOpenWatch?.({ watchId: w.id, title: w.query_text }),
+          },
+          [
+            el('span', { class: dotClass }),
+            el('span', { class: 'watch-name', text: w.query_text }),
+            el('span', { class: 'watch-meta' }, [
+              el('span', { class: 'watch-surfaced', text: `${surfaced} surfaced` }),
+              el('span', { class: 'watch-state', text: status === 'stopped' ? 'paused' : status }),
+            ]),
+          ]
+        )
+      );
+    }
+  }
+
+  function renderRecent() {
+    clear(recentList);
+    const surfaced = [];
+    for (const c of records.values()) {
+      if (classify(c) === 'surfaced') surfaced.push(c);
+    }
+    surfaced.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const top = surfaced.slice(0, 6);
+    if (!top.length) {
+      recentList.append(
+        el('p', { class: 'recent-empty', text: 'Nothing surfaced yet — when an event clears the bar, it shows up here.' })
+      );
+      return;
+    }
+    for (const c of top) {
+      const row = el(
+        c.url ? 'a' : 'button',
+        c.url
+          ? { class: 'recent-row', href: c.url, target: '_blank', rel: 'noopener noreferrer' }
+          : {
+              class: 'recent-row',
+              type: 'button',
+              onClick: () => onOpenWatch?.({ watchId: c.watch_id, title: c.title }),
+            },
+        [
+          el('span', { class: 'recent-title', text: c.title }),
+          el('span', { class: 'recent-meta', text: `${c.source}${c.timestamp ? ` · ${timeAgo(c.timestamp)}` : ''}` }),
+        ]
+      );
+      recentList.append(row);
+    }
+  }
+
+  function render() {
+    renderWatches();
+    renderRecent();
+  }
+
   async function refresh() {
     try {
-      const [cands, watches] = await Promise.all([
+      const [cands, watchesRes] = await Promise.all([
         api.getCandidates?.(),
         api.getWatches?.(),
       ]);
@@ -112,41 +140,30 @@ export function OverviewPage({ api }) {
       // ingest-only accumulation would keep a deleted watch's candidates around.
       records.clear();
       for (const c of cands || []) ingest(c);
-      if (Array.isArray(watches)) {
-        watchCount = watches.length;
-        activeWatchCount = watches.filter((w) => (w.status || 'watching') !== 'stopped').length;
-      }
+      if (Array.isArray(watchesRes)) watches = watchesRes;
       render();
     } catch (err) {
       console.warn('[overview] refresh failed', err);
     }
   }
 
-  // A watch was deleted elsewhere — drop its candidates immediately so the
-  // aggregate updates without waiting for the next poll.
+  // A watch was deleted elsewhere — drop it and its candidates immediately so
+  // the page updates without waiting for the next poll.
   function dropWatch(watchId) {
-    let changed = false;
     for (const [key, cand] of records) {
-      if (cand.watch_id === watchId) {
-        records.delete(key);
-        changed = true;
-      }
+      if (cand.watch_id === watchId) records.delete(key);
     }
-    if (watchCount > 0) watchCount -= 1;
-    if (activeWatchCount > 0) activeWatchCount -= 1;
-    if (changed || active) render();
-    if (active) refresh();
+    watches = watches.filter((w) => w.id !== watchId);
+    if (active) {
+      render();
+      refresh();
+    }
   }
 
   // Live push from the shared feed dispatch (see main.js).
   function handleCandidate(msg) {
-    if (!active) {
-      // Still keep the aggregate warm so the page is instant when opened.
-      ingest(msg);
-      return;
-    }
-    if (ingest(msg)) render();
-    else render();
+    ingest(msg);
+    if (active) render();
   }
 
   function show() {
@@ -167,29 +184,20 @@ export function OverviewPage({ api }) {
   const node = el('section', { class: 'page page-overview', hidden: true }, [
     el('div', { class: 'overview-head' }, [
       el('p', { class: 'eyebrow', text: 'Overview' }),
-      el('h1', { class: 'overview-title head', text: 'Everything Lookout is holding back.' }),
+      el('h1', { class: 'overview-title head', text: 'On the lookout for you.' }),
       el('p', {
         class: 'overview-sub',
-        text: 'One live picture of the whole suppression engine — what surfaced, what was silenced, and why — across every watch you have running.',
+        text: 'Every watch you have running, and the few events that actually cleared the bar.',
       }),
     ]),
     strip.node,
-    el('div', { class: 'ratio-card' }, [
-      el('div', { class: 'ratio-head' }, [
-        el('div', { class: 'ratio-stat' }, [surfacedBig, el('span', { class: 'ratio-cap', text: 'surfaced to you' })]),
-        el('span', { class: 'ratio-dot', text: '·' }),
-        el('div', { class: 'ratio-stat' }, [silencedBig, el('span', { class: 'ratio-cap', text: 'silenced for you' })]),
-      ]),
-      ratioBar,
-      ratioSub,
+    el('div', { class: 'ov-section' }, [
+      el('p', { class: 'ov-section-label' }, ['Your watches ', watchCountCap]),
+      watchList,
     ]),
-    el('div', { class: 'overview-stats' }, [
-      el('div', { class: 'stat stat--dup' }, [dupNum, el('span', { class: 'stat-label', text: 'duplicates silenced' })]),
-      el('div', { class: 'stat stat--off' }, [offNum, el('span', { class: 'stat-label', text: 'off-topic filtered' })]),
-      el('div', { class: 'stat stat--expired' }, [expiredNum, el('span', { class: 'stat-label', text: 'already passed' })]),
-      el('div', { class: 'stat stat--seen' }, [seenNum, el('span', { class: 'stat-label', text: 'total scanned' })]),
-      el('div', { class: 'stat stat--watches' }, [watchesNum, el('span', { class: 'stat-label', text: 'active watches' })]),
-      el('div', { class: 'stat stat--sources' }, [sourcesNum, el('span', { class: 'stat-label', text: 'sources seen' })]),
+    el('div', { class: 'ov-section' }, [
+      el('p', { class: 'ov-section-label' }, ['Recently surfaced']),
+      recentList,
     ]),
   ]);
 
