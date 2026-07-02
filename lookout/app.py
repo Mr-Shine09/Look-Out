@@ -205,6 +205,14 @@ async def update_watch_status(watch_id: str, payload: WatchStatusUpdate) -> dict
     return watch
 
 
+@app.delete("/api/watches/{watch_id}")
+async def delete_watch(watch_id: str) -> dict[str, Any]:
+    if not engine().delete_watch(watch_id):
+        raise HTTPException(status_code=404, detail="watch not found")
+    await app.state.feed.broadcast({"type": "watch_deleted", "watch_id": watch_id})
+    return {"ok": True, "watch_id": watch_id}
+
+
 @app.post("/api/candidates/{candidate_id}/feedback")
 async def candidate_feedback(candidate_id: str, payload: FeedbackCreate) -> dict[str, Any]:
     try:

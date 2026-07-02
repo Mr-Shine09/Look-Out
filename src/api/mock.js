@@ -257,6 +257,19 @@ export function createMockApi() {
     return { id: watchId, ...(watch || {}) };
   }
 
+  async function deleteWatch(watchId) {
+    await tick(80);
+    const idx = watches.findIndex((w) => w.id === watchId);
+    if (idx === -1) return { ok: false, watch_id: watchId };
+    watches.splice(idx, 1);
+    delete queues[watchId];
+    for (const [cid, cand] of candidates) {
+      if (cand.watch_id === watchId) candidates.delete(cid);
+    }
+    bus.emit({ type: 'watch_deleted', watch_id: watchId });
+    return { ok: true, watch_id: watchId };
+  }
+
   // ---- Pipeline (V3) ----------------------------------------------------
   function triggerPipeline(candId) {
     const cand = candidates.get(candId);
@@ -343,6 +356,7 @@ export function createMockApi() {
     getCandidates,
     updateSpec,
     setWatchStatus,
+    deleteWatch,
     triggerPipeline,
     injectLiveFire,
     start,

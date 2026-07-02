@@ -33,7 +33,7 @@ function animateCount(node, to) {
  * A "show what it silenced" toggle reveals the suppressed items so the
  * mechanism is provable live.
  */
-export function StayPage({ api, onReport, onNewSearch }) {
+export function StayPage({ api, onReport, onNewSearch, onDeleted }) {
   const pipeline = Pipeline();
   pipeline.node.hidden = true; // on-demand: only appears once the user hits "act"
   const curve = PrecisionCurve();
@@ -154,6 +154,41 @@ export function StayPage({ api, onReport, onNewSearch }) {
     ['New search']
   );
 
+  // ---- Delete the active watch (two-step confirm, never one-click) --------
+  let deleteArmed = false;
+  let deleteTimer = null;
+  const deleteBtn = el('button', { class: 'ghost-btn ghost-btn--danger', type: 'button' }, ['Delete watch']);
+  function disarmDelete() {
+    deleteArmed = false;
+    deleteBtn.textContent = 'Delete watch';
+    deleteBtn.classList.remove('ghost-btn--armed');
+    if (deleteTimer) {
+      clearTimeout(deleteTimer);
+      deleteTimer = null;
+    }
+  }
+  deleteBtn.addEventListener('click', async () => {
+    if (!scope.watchId) return;
+    if (!deleteArmed) {
+      // First click arms; it self-disarms after a few seconds so a stray click
+      // can never delete on its own.
+      deleteArmed = true;
+      deleteBtn.textContent = 'Confirm delete';
+      deleteBtn.classList.add('ghost-btn--armed');
+      deleteTimer = setTimeout(disarmDelete, 4000);
+      return;
+    }
+    disarmDelete();
+    deleteBtn.disabled = true;
+    try {
+      await api.deleteWatch?.(scope.watchId);
+      onDeleted?.(scope.watchId);
+    } catch (err) {
+      console.warn('[stay] deleteWatch failed', err);
+      deleteBtn.disabled = false;
+    }
+  });
+
   const feed = el('div', { class: 'stay-feed' });
 
   function updateStats() {
@@ -254,6 +289,10 @@ export function StayPage({ api, onReport, onNewSearch }) {
     pipeline.node.hidden = true;
     lastCheckedAt = Date.now();
     setWatchStatusUI('watching');
+    // The delete button is disabled during an in-flight delete and the instance
+    // is reused across watches — re-arm it fresh for whatever we're now showing.
+    deleteBtn.disabled = false;
+    disarmDelete();
     refreshLiveness();
     render();
     try {
@@ -298,6 +337,7 @@ export function StayPage({ api, onReport, onNewSearch }) {
         newSearchBtn,
         stopToggle,
         silenceToggle,
+        deleteBtn,
         el('button', { class: 'primary-btn', type: 'button', onClick: () => onReport?.(scope) }, ['Get these delivered →']),
       ]),
     ]),

@@ -65,6 +65,11 @@ const stay = StayPage({
     router.navigate('report');
   },
   onNewSearch: () => router.navigate('search'),
+  onDeleted: (watchId) => {
+    overview.dropWatch(watchId);
+    if (scope.watchId === watchId) scope = { watchId: null, title: 'your watch' };
+    router.navigate('overview');
+  },
 });
 
 // ---- Layout ------------------------------------------------------------
@@ -147,6 +152,9 @@ api.subscribe((msg) => {
       break;
     case 'curve_update':
       stay.handleCurve(msg);
+      break;
+    case 'watch_deleted':
+      overview.dropWatch(msg.watch_id);
       break;
     case 'spec_ready':
       break;

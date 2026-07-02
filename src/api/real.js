@@ -103,6 +103,10 @@ export function createRealApi(baseUrl = '') {
       }));
     },
 
+    async deleteWatch(watchId) {
+      return request(`/api/watches/${encodeURIComponent(watchId)}`, { method: 'DELETE' });
+    },
+
     async getCurve() {
       return asArray(await request('/api/curve')).map(normalizeCurvePoint);
     },

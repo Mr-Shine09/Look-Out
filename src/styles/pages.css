@@ -130,6 +130,17 @@
   border-color: var(--scan);
   color: var(--text);
 }
+.ghost-btn--danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+/* Armed (second-click-to-confirm) delete — solid danger so it's unmistakable. */
+.ghost-btn--armed,
+.ghost-btn--armed:hover {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: var(--void);
+}
 
 /* ============================================================
    SEARCH

@@ -108,6 +108,9 @@ export function OverviewPage({ api }) {
         api.getCandidates?.(),
         api.getWatches?.(),
       ]);
+      // Rebuild from the authoritative list so deletions prune themselves —
+      // ingest-only accumulation would keep a deleted watch's candidates around.
+      records.clear();
       for (const c of cands || []) ingest(c);
       if (Array.isArray(watches)) {
         watchCount = watches.length;
@@ -117,6 +120,22 @@ export function OverviewPage({ api }) {
     } catch (err) {
       console.warn('[overview] refresh failed', err);
     }
+  }
+
+  // A watch was deleted elsewhere — drop its candidates immediately so the
+  // aggregate updates without waiting for the next poll.
+  function dropWatch(watchId) {
+    let changed = false;
+    for (const [key, cand] of records) {
+      if (cand.watch_id === watchId) {
+        records.delete(key);
+        changed = true;
+      }
+    }
+    if (watchCount > 0) watchCount -= 1;
+    if (activeWatchCount > 0) activeWatchCount -= 1;
+    if (changed || active) render();
+    if (active) refresh();
   }
 
   // Live push from the shared feed dispatch (see main.js).
@@ -174,5 +193,5 @@ export function OverviewPage({ api }) {
     ]),
   ]);
 
-  return { node, key: 'overview', show, hide, handleCandidate };
+  return { node, key: 'overview', show, hide, handleCandidate, dropWatch };
 }

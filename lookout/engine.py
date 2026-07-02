@@ -96,6 +96,11 @@ class LookoutEngine:
         notify: bool = False,
     ) -> dict[str, Any]:
         watch_id = watch["id"]
+        # The watch may have been deleted while a backfill/scout batch was still
+        # in flight (it holds a stale watch dict). Drop the result cleanly rather
+        # than resurrecting cand:/seen: keys for a watch that no longer exists.
+        if not self.redis.exists(self.watch_key(watch_id)):
+            return {"skipped": "watch_deleted", "watch_id": watch_id}
         cid = candidate_id(event)
         event_token = str(event.get("id") or cid)
         content_hash = hash_event(event)
@@ -317,6 +322,26 @@ class LookoutEngine:
             return None
         self.redis.hset(self.watch_key(watch_id), mapping={"status": status})
         return self.get_watch(watch_id)
+
+    def delete_watch(self, watch_id: str) -> bool:
+        """Remove a watch and everything Redis holds for it. False if absent.
+
+        A watch owns its spec hash, its dedup "seen" set, its metrics/curve
+        sorted set, and one hash per candidate (cand:{watch_id}:*). We drop all
+        of them so no orphaned candidates linger in the global candidate list.
+        An in-flight backfill/scout can't resurrect these keys because
+        process_event bails out the moment the spec hash is gone.
+        """
+        if not self.redis.exists(self.watch_key(watch_id)):
+            return False
+        for key in self.redis.scan_iter(match=self.candidate_key(watch_id, "*")):
+            self.redis.delete(key)
+        self.redis.delete(
+            self.watch_key(watch_id),
+            self.seen_key(watch_id),
+            self.metrics_key(watch_id),
+        )
+        return True
 
     def get_watches(self) -> list[dict[str, Any]]:
         watches: list[dict[str, Any]] = []
