@@ -1,5 +1,6 @@
 import { el } from '../lib/dom.js';
 import { tally } from '../lib/classify.js';
+import { PrecisionCurve } from './precisionCurve.js';
 
 /** Tween an integer element toward `to` (cubic ease-out). */
 function animateCount(node, to) {
@@ -35,6 +36,21 @@ export function DevPage({ api }) {
   let activeWatchCount = 0;
   let pollTimer = null;
   let active = false;
+  const curve = PrecisionCurve();
+  curve.node.classList.add('reveal');
+
+  async function loadCurve() {
+    try {
+      const pts = await api.getCurve?.();
+      if (Array.isArray(pts)) curve.setPoints(pts);
+    } catch (err) {
+      console.warn('[dev] curve load failed', err);
+    }
+  }
+
+  function handleCurve(msg) {
+    curve.addPoint({ timestamp: msg.timestamp, false_alarm_rate: msg.false_alarm_rate });
+  }
 
   // ---- Headline ratio (surfaced vs silenced) -----------------------------
   const surfacedBig = el('span', { class: 'ratio-num ratio-num--surfaced', text: '0' });
@@ -131,6 +147,7 @@ export function DevPage({ api }) {
     active = true;
     render();
     refresh();
+    loadCurve();
     if (!pollTimer) pollTimer = setInterval(refresh, 5000);
   }
 
@@ -169,7 +186,8 @@ export function DevPage({ api }) {
       el('div', { class: 'stat stat--watches' }, [watchesNum, el('span', { class: 'stat-label', text: 'active watches' })]),
       el('div', { class: 'stat stat--sources' }, [sourcesNum, el('span', { class: 'stat-label', text: 'sources seen' })]),
     ]),
+    curve.node,
   ]);
 
-  return { node, key: 'dev', show, hide, handleCandidate, dropWatch };
+  return { node, key: 'dev', show, hide, handleCandidate, dropWatch, handleCurve };
 }

@@ -206,6 +206,32 @@
   font-size: 18px;
 }
 
+/* ---- Search error + spec confirm --------------------------------------- */
+.search-error {
+  margin: 12px 0 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--danger);
+}
+.spec-confirm {
+  margin-top: 22px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.spec-confirm-label {
+  margin: 0 0 14px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+.spec-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
 /* Filters */
 .filters {
   display: flex;
@@ -617,10 +643,18 @@
    ============================================================ */
 .stay-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
   margin-bottom: 26px;
+}
+.stay-head-title {
+  /* Never let the actions row squeeze this below a readable width — it
+     should wrap onto its own line instead of collapsing to one word per
+     line with the actions pushed off to the side. */
+  flex: 1 1 280px;
+  min-width: 280px;
 }
 .stay-title {
   margin: 0;
@@ -632,6 +666,7 @@
 }
 .stay-head-actions {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 10px;
   flex-shrink: 0;
 }
@@ -950,6 +985,11 @@
   background: var(--scan-dim);
   color: var(--text);
   font-size: 14px;
+}
+.report-confirm--error {
+  border-color: rgba(191, 77, 61, 0.3);
+  background: var(--reject-dim);
+  color: var(--danger);
 }
 
 /* ---- Report section headings ------------------------------------------ */
@@ -1347,6 +1387,11 @@
 .report-confirm {
   border-color: var(--scan);
   background: var(--scan-dim);
+}
+.report-confirm.report-confirm--error {
+  border-color: var(--danger);
+  background: var(--reject-dim);
+  color: var(--danger);
 }
 .stat--surfaced { border-color: rgba(217, 119, 87, 0.35); }
 .stat--surfaced .stat-num { color: var(--signal); }

@@ -79,6 +79,26 @@ class Notifier:
         if "webhook" in channels and cfg.get("webhook_url"):
             self._send_webhook(cfg["webhook_url"], watch, payload)
 
+    def send_watch_to_discord(self, watch: dict[str, Any], candidates: list[dict[str, Any]]) -> dict[str, Any]:
+        """Push a watch's current surfaced (non-expired) candidates to Discord.
+
+        Discord is the only wired-up channel now (see issue #17) — this bypasses
+        the generic multi-channel config and always uses the env-configured hook.
+        """
+        hook = self.settings.discord_webhook_url
+        if not hook:
+            return {"ok": False, "error": "Discord webhook is not configured (LOOKOUT_DISCORD_WEBHOOK unset)."}
+        if not candidates:
+            return {"ok": False, "error": "Nothing surfaced yet for this watch."}
+        watch_q = str(watch.get("query_text") or "your watch")
+        sent = 0
+        for cand in candidates:
+            if self._send_discord(hook, watch_q, cand):
+                sent += 1
+        if sent == 0:
+            return {"ok": False, "error": "Discord delivery failed — check the webhook URL."}
+        return {"ok": True, "sent": sent, "total": len(candidates)}
+
     def send_test(self, cfg: dict[str, Any] | None = None) -> dict[str, Any]:
         cfg = cfg or self.get_config()
         channels = set(cfg.get("channels") or [])

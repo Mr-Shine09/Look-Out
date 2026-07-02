@@ -2,7 +2,6 @@ import { el, clear } from '../lib/dom.js';
 import { CandidateCard } from './candidateCard.js';
 import { Pipeline } from './pipeline.js';
 import { autoApply } from '../lib/autoApply.js';
-import { PrecisionCurve } from './precisionCurve.js';
 import { classify, tally } from '../lib/classify.js';
 
 /** Tween a number element from its current value to `to` (cubic ease-out). */
@@ -36,8 +35,6 @@ function animateCount(node, to) {
 export function StayPage({ api, onReport, onNewSearch, onDeleted }) {
   const pipeline = Pipeline();
   pipeline.node.hidden = true; // on-demand: only appears once the user hits "act"
-  const curve = PrecisionCurve();
-  curve.node.classList.add('reveal'); // wash-in on scroll
   let scope = { watchId: null, title: 'your watch' };
   const records = new Map(); // cid -> candidate
   let lastCheckedAt = Date.now();
@@ -272,15 +269,6 @@ export function StayPage({ api, onReport, onNewSearch, onDeleted }) {
     lastCheckedAt = Date.now();
   }
 
-  async function loadCurve() {
-    try {
-      const pts = await api.getCurve?.();
-      if (Array.isArray(pts)) curve.setPoints(pts);
-    } catch (err) {
-      console.warn('[stay] curve load failed', err);
-    }
-  }
-
   async function show(next = {}) {
     scope = { watchId: next.watchId || null, title: next.title || next.query || 'your watch' };
     topicEl.textContent = scope.title;
@@ -311,7 +299,6 @@ export function StayPage({ api, onReport, onNewSearch, onDeleted }) {
       }
     }
     render();
-    loadCurve();
   }
 
   function handleCandidate(msg) {
@@ -323,13 +310,9 @@ export function StayPage({ api, onReport, onNewSearch, onDeleted }) {
     pipeline.update(msg);
   }
 
-  function handleCurve(msg) {
-    curve.addPoint({ timestamp: msg.timestamp, false_alarm_rate: msg.false_alarm_rate });
-  }
-
   const node = el('section', { class: 'page page-stay', hidden: true }, [
     el('div', { class: 'stay-head' }, [
-      el('div', {}, [
+      el('div', { class: 'stay-head-title' }, [
         el('p', { class: 'eyebrow', text: 'Stay' }),
         el('h1', { class: 'stay-title head' }, ['Lookout is watching ', topicEl, ' — and staying quiet.']),
       ]),
@@ -364,9 +347,8 @@ export function StayPage({ api, onReport, onNewSearch, onDeleted }) {
       el('div', { class: 'stat stat--seen' }, [seenNum, el('span', { class: 'stat-label', text: 'total updates seen' })]),
     ]),
     feed,
-    curve.node,
     pipeline.node,
   ]);
 
-  return { node, key: 'stay', onShow: () => {}, show, handleCandidate, handlePipeline, handleCurve };
+  return { node, key: 'stay', onShow: () => {}, show, handleCandidate, handlePipeline };
 }

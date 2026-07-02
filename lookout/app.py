@@ -174,6 +174,12 @@ def get_watches() -> list[dict[str, Any]]:
 
 @app.post("/api/watches", status_code=202)
 async def create_watch(payload: WatchCreate, response: Response) -> dict[str, Any]:
+    limit = app.state.settings.max_active_watches
+    if engine().active_watch_count() >= limit:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Active watch limit reached ({limit}). Stop or delete a watch first.",
+        )
     watch_id = engine().create_watch(payload.query_text)
     asyncio.create_task(engine().compile_watch(watch_id))
     response.status_code = 202
@@ -199,6 +205,13 @@ async def update_watch_spec(watch_id: str, payload: SpecUpdate) -> dict[str, Any
 
 @app.patch("/api/watches/{watch_id}/status")
 async def update_watch_status(watch_id: str, payload: WatchStatusUpdate) -> dict[str, Any]:
+    if payload.status == "watching":
+        limit = app.state.settings.max_active_watches
+        if engine().active_watch_count(exclude_watch_id=watch_id) >= limit:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Active watch limit reached ({limit}). Stop or delete a watch first.",
+            )
     watch = engine().set_watch_status(watch_id, payload.status)
     if not watch:
         raise HTTPException(status_code=404, detail="watch not found")
@@ -211,6 +224,19 @@ async def delete_watch(watch_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="watch not found")
     await app.state.feed.broadcast({"type": "watch_deleted", "watch_id": watch_id})
     return {"ok": True, "watch_id": watch_id}
+
+
+@app.post("/api/watches/{watch_id}/notify")
+async def notify_watch(watch_id: str) -> dict[str, Any]:
+    watch = engine().get_watch(watch_id)
+    if not watch:
+        raise HTTPException(status_code=404, detail="watch not found")
+    candidates = [
+        c
+        for c in engine().list_candidates(watch_id)
+        if c.get("judgment") == "accepted" and c.get("state") != "duplicate" and not c.get("expired")
+    ]
+    return await asyncio.to_thread(app.state.notifier.send_watch_to_discord, watch, candidates)
 
 
 @app.post("/api/candidates/{candidate_id}/feedback")

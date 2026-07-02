@@ -245,6 +245,13 @@ class LookoutEngine:
             index += 2
         return best
 
+    def active_watch_count(self, exclude_watch_id: str | None = None) -> int:
+        return sum(
+            1
+            for watch in self.get_watches()
+            if watch["status"] != "stopped" and watch["id"] != exclude_watch_id
+        )
+
     def create_watch(self, query_text: str) -> str:
         watch_id = f"w_{uuid.uuid4().hex[:10]}"
         self.redis.hset(

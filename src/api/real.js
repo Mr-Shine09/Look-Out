@@ -107,6 +107,10 @@ export function createRealApi(baseUrl = '') {
       return request(`/api/watches/${encodeURIComponent(watchId)}`, { method: 'DELETE' });
     },
 
+    async notifyWatch(watchId) {
+      return request(`/api/watches/${encodeURIComponent(watchId)}/notify`, { method: 'POST' });
+    },
+
     async getCurve() {
       return asArray(await request('/api/curve')).map(normalizeCurvePoint);
     },

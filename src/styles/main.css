@@ -22,25 +22,32 @@
   display: block;
   width: 44px;
   height: 44px;
-  animation: logo-bob 4.6s ease-in-out infinite;
 }
-@keyframes logo-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+/* Only the eye moves — idle, float up, blink, float down, return. The mark
+   itself (glass, hair, hand) stays put. */
+.brand-mark .eye-move {
+  animation: eye-bob 5.2s ease-in-out infinite;
 }
-/* The eye blinks: lids close over the lens on a slow cycle. */
+@keyframes eye-bob {
+  0%, 12% { transform: translateY(0); }
+  32%, 48% { transform: translateY(-5px); }
+  68%, 84% { transform: translateY(5px); }
+  100% { transform: translateY(0); }
+}
+/* The eye blinks once per cycle, timed to land while the eye is floating up
+   (matches the reference: idle -> float up -> blink -> float down -> return). */
 .brand-mark .logo-lid {
-  transform-origin: 20px 20px;
+  transform-origin: 58px 41px;
   transform: scaleY(0);
   opacity: 0;
-  animation: logo-blink 6.4s linear infinite;
+  animation: logo-blink 5.2s ease-in-out infinite;
 }
 @keyframes logo-blink {
-  0%, 90%, 96.5%, 100% { transform: scaleY(0); opacity: 0; }
-  92%, 94.5% { transform: scaleY(1); opacity: 1; }
+  0%, 36%, 44%, 100% { transform: scaleY(0); opacity: 0; }
+  39%, 41% { transform: scaleY(1); opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .brand-mark { animation: none; }
+  .brand-mark .eye-move { animation: none; }
   .brand-mark .logo-lid { animation: none; transform: scaleY(0); opacity: 0; }
 }
 .app-header .spacer {

@@ -62,6 +62,13 @@
   box-sizing: border-box;
 }
 
+/* The `hidden` attribute must always win — otherwise any component class
+   that sets its own `display` (e.g. `.compiling { display: flex }`) silently
+   overrides it and the element stays visible while JS thinks it's hidden. */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;

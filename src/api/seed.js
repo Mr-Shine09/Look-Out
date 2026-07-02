@@ -34,46 +34,9 @@ const THUMBS = [
 let _thumbIdx = 0;
 const nextThumb = () => THUMBS[_thumbIdx++ % THUMBS.length];
 
-export const WATCHES = [
-  {
-    id: 'w_ml_hack',
-    query_text:
-      'Alert me when a new in-person ML/AI hackathon opens registration within 100mi of SF',
-    status: 'watching',
-    spec: {
-      must_match: [
-        'In-person event (not virtual-only)',
-        'Theme is ML, AI, or data',
-        'Located within ~100mi of San Francisco',
-        'Registration currently open',
-      ],
-      reject_cases: [
-        'Online / virtual-only events',
-        'Pure Web3 / crypto hackathons',
-        'Already-closed or past registration',
-        'Career fairs or info sessions (not build events)',
-      ],
-    },
-  },
-  {
-    id: 'w_grants',
-    query_text:
-      'Watch for new AI research grants or fellowships with rolling deadlines, open to early-career researchers',
-    status: 'watching',
-    spec: {
-      must_match: [
-        'Funding for AI / ML research',
-        'Open to early-career or independent researchers',
-        'Deadline is upcoming (not passed)',
-      ],
-      reject_cases: [
-        'Requires tenured faculty status',
-        'Corporate sponsorship deals (not grants)',
-        'Deadline already passed',
-      ],
-    },
-  },
-];
+// No demo/seed watches — the mock backend starts exactly as empty as a
+// fresh real backend does. A watch only exists once the user creates one.
+export const WATCHES = [];
 
 /**
  * Candidate pool per watch. `dupGroup` marks near-duplicate events (same

@@ -22,6 +22,7 @@ class Settings:
     cors_origins: list[str]
     cors_origin_regex: str | None
     seed_default_watch: bool
+    max_active_watches: int
     event_source: str
     scrape_sources: list[str]
     scrape_cache_path: Path
@@ -66,7 +67,8 @@ def get_settings() -> Settings:
             "LOOKOUT_CORS_ORIGIN_REGEX", r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
         )
         or None,
-        seed_default_watch=os.getenv("LOOKOUT_SEED_DEFAULT_WATCH", "1") != "0",
+        seed_default_watch=os.getenv("LOOKOUT_SEED_DEFAULT_WATCH", "0") != "0",
+        max_active_watches=int(os.getenv("LOOKOUT_MAX_ACTIVE_WATCHES", "3")),
         event_source=os.getenv("LOOKOUT_EVENT_SOURCE", "seed").lower(),
         scrape_sources=[s.strip() for s in scrape_sources.split(",") if s.strip()],
         scrape_cache_path=Path(
