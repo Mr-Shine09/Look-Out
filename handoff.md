@@ -4,13 +4,14 @@
 > Claude Code) can pick up Lookout with zero prior context: what it is, how it's built,
 > what's done, what's next, and how to run it.
 
-- **Last worked on:** 2026-07-01 (Session 4)
+- **Last worked on:** 2026-07-02 (Session 5)
 - **GitHub:** https://github.com/BennPhu/Look-Out
 - **Active branch:** `feat/luma-scrape-source` (stacked history on `feat/infra-tracing`)
-- **Last commit:** `45be717` (2026-07-01). **Working tree is DIRTY** — Session 4 built
-  the event strip + Overview page but did **not** commit yet (see Section 5, Session 4).
+- **Last commit:** `be1f5d0` (2026-07-02). Working tree clean; local commits not yet pushed.
 - **Owner:** Oak (orchestration + product + backend). Frontend/UX track: Benn.
-- **Roadmap now lives as GitHub issues** (#4–#10) — see Section 7.
+- **Roadmap lives as GitHub issues** — rebuild plan is #11–#20 (Session 5); #6/#9/#10
+  still open from the earlier queue; #7 implemented awaiting review; #8 closed
+  (superseded by #14). See Section 7.
 
 ---
 
@@ -242,6 +243,30 @@ endpoint exists yet if you want to clean them up.
      committed the previously-uncommitted `reportPage.js` relabel, `handoff.md`,
      `presentation/`, `scripts/serve-public.sh` (skipped `lookout-deck.zip` — binary,
      redundant with `presentation/`). All pushed to `origin/feat/luma-scrape-source`.
+
+- **2026-07-02 (Session 5) — cleanup, rebuild plan filed as issues #11–#20, redesign
+  first slice shipped:**
+  1. **Committed the in-flight #7 delete-watch work** (`0790309`): `DELETE
+     /api/watches/{id}` wipes spec/seen/metrics/cand keys; `process_event` bails if the
+     watch vanished mid-backfill; two-step armed Delete button on Stay.
+  2. **Junk purge** (`5565037`): removed stale `LOOKOUT.md` (README duplicate) and
+     unreferenced root logo images from git; locally deleted teammate briefing docs,
+     progress notes, install logs, `lookout-deck.zip`, and the duplicate `venv/`
+     (~750MB; Phoenix lives in `venv-phoenix/`). `CREDENTIALS.local.md` kept — delete
+     manually once `.env` is confirmed as source of truth.
+  3. **Filed the rebuild as issues #11–#20** (Oak's spec: de-genericize design, honest
+     controls, multi-source, freshness): #11 theme, #12 animated logo, #13 functional
+     Overview, #14 minimal Search + editable keyword chips (supersedes #8, now closed),
+     #15 Stay controls + curve→dev, #16 hidden dev window, #17 Discord-only Notify that
+     actually delivers, #18 multi-source (Luma + Cerebral Valley + Devpost), #19
+     Eventbrite best-effort, #20 freshness sweeper.
+  4. **Shipped the first slice** (`be1f5d0`, verified live in mock mode, all pages
+     clean): "Field Notes" theme (ivory/ink/clay/olive, Lora + Archivo, watercolor
+     canvas + glassmorphism removed, `backdrop.js` deleted); animated SVG
+     magnifying-glass/eye logo (bob + blink, reduced-motion aware) + favicon; Overview
+     rebuilt as a functional home (watch list + recently surfaced, click-through to
+     Stay); hidden `#/dev` window (enable via `#/dev?key=oak`) now hosts the metric
+     tiles. **Awaiting Oak's live review** (#11/#12/#13 + first slice of #16).
 
 - **2026-07-01 (Session 4) — roadmap → GitHub issues, then shipped features #4 & #5
   (NOT yet committed):**
