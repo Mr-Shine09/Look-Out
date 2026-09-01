@@ -24,9 +24,9 @@
 - [🔄 How it works, end to end](#-how-it-works-end-to-end)
 - [🧱 Tech stack](#-tech-stack)
 - [🔍 Inside the stack](#-inside-the-stack) — [Redis](#-redis--the-suppression-engine-itself-not-a-cache) · [Browserbase](#-browserbase--the-web-watching-layer) · [Sentry](#-sentry--error-monitoring-on-the-live-pipeline) · [Phoenix](#-arize-phoenix--agent-observability)
-- [🚀 Running it yourself](#️-running-it-yourself)
+- [🚀 Running it yourself](#-running-it-yourself)
 - [🔌 API surface](#-api-surface)
-- [🧭 Architecture at a glance](#️-architecture-at-a-glance)
+- [🧭 Architecture at a glance](#-architecture-at-a-glance)
 - [📁 Repo layout](#-repo-layout)
 - [👥 Team](#-team)
 
