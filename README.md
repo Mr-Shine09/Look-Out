@@ -3,11 +3,34 @@
 
   <h3>The first alert tool built to notify you <em>less</em>.</h3>
   <p><em>A watch → judge → act agent that remembers what it already told you, and stays quiet about everything else.</em></p>
+
+  <p>
+    <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.11">
+    <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI">
+    <img src="https://img.shields.io/badge/Redis_Stack-FF4438?style=flat-square&logo=redis&logoColor=white" alt="Redis Stack">
+    <img src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite">
+    <img src="https://img.shields.io/badge/UC_Berkeley_AI_Hackathon-2026-003262?style=flat-square" alt="UC Berkeley AI Hackathon 2026">
+  </p>
 </div>
 
 ---
 
-## TL;DR for judges
+---
+
+## 📚 Contents
+
+- [🎯 What it actually does](#-what-it-actually-does)
+- [🆚 Why this is not a normal event finder](#-why-this-is-not-a-normal-event-finder)
+- [🔄 How it works, end to end](#-how-it-works-end-to-end)
+- [🧱 Tech stack](#-tech-stack)
+- [🔍 Inside the stack](#-inside-the-stack) — [Redis](#-redis--the-suppression-engine-itself-not-a-cache) · [Browserbase](#-browserbase--the-web-watching-layer) · [Sentry](#-sentry--error-monitoring-on-the-live-pipeline) · [Phoenix](#-arize-phoenix--agent-observability)
+- [🚀 Running it yourself](#️-running-it-yourself)
+- [🔌 API surface](#-api-surface)
+- [🧭 Architecture at a glance](#️-architecture-at-a-glance)
+- [📁 Repo layout](#-repo-layout)
+- [👥 Team](#-team)
+
+## 🎯 What it actually does
 
 Every alert tool — Google Alerts, RSS, "track this search" — is built to notify you **more**. They re-fire on every match, every duplicate, every reword. You end up muting them.
 
@@ -18,11 +41,11 @@ Every alert tool — Google Alerts, RSS, "track this search" — is built to not
 
 It only surfaces an alert when **both** clear the bar. The longer it runs, the quieter and sharper it gets, because its memory of "what you've already seen" keeps growing. The single watchful eye in our logo is the point: **one alert that matters**, out of all the noise it silenced.
 
-> Demo domain = **events / hackathons** (a swappable noun). The same engine works on status pages, filings, restocks, job boards, or any changing source.
+> The demo watches **events and hackathons**, but that noun is swappable. The same engine works on status pages, filings, restocks, job boards, or any source that changes over time.
 
 ---
 
-## Why this is *not* a normal "event finder"
+## 🆚 Why this is not a normal event finder
 
 | | Normal event finder / Google Alerts | **Lookout** |
 |---|---|---|
@@ -38,7 +61,7 @@ An event finder answers *"what exists?"*. Lookout answers *"what changed that I 
 
 ---
 
-## Project description
+## 🔄 How it works, end to end
 
 **Lookout** is a tireless watcher for live opportunities. You describe what you care about in plain English ("Alert me when a new in-person ML/AI hackathon opens registration within 100 mi of SF"). Lookout:
 
@@ -51,7 +74,7 @@ An event finder answers *"what exists?"*. Lookout answers *"what changed that I 
 
 ---
 
-## Tech stack
+## 🧱 Tech stack
 
 | Layer | Technology | Role |
 |---|---|---|
@@ -68,11 +91,11 @@ An event finder answers *"what exists?"*. Lookout answers *"what changed that I 
 
 ---
 
-## How the four sponsor technologies are used
+## 🔍 Inside the stack
 
-> A diagram for each, so you can see exactly where Redis, Browserbase, Sentry, and Arize Phoenix plug into the pipeline.
+> Four pieces do the heavy lifting. Here is exactly where each one plugs into the pipeline, with a diagram apiece.
 
-### Redis — *the suppression engine itself (not a cache)*
+### 🧠 Redis — the suppression engine itself, not a cache
 
 Redis is the heart of the product. We use **Redis Stack with the RediSearch module** to run a **vector index** over every alert Lookout has ever surfaced. This is what lets Lookout *remember* and *stay quiet*.
 
@@ -111,12 +134,12 @@ flowchart TD
     class B,C,D,E,F,G r;
 ```
 
-### Browserbase — *the web-watching / fetch layer*
+### 🌐 Browserbase — the web-watching layer
 
 Browserbase is how Lookout actually *looks at the web* in a real, cloud-hosted browser. The scrape source (`lookout/scrape_source.py`) has a pluggable fetch transport:
 
 - When `LOOKOUT_USE_BROWSERBASE=1` and credentials are present, it **creates a Browserbase session and drives a real Chromium over CDP with Playwright** (`_fetch_with_browserbase`): connect → `page.goto(url)` → return rendered HTML. This handles JS-heavy / bot-protected pages without us running browser infra.
-- Otherwise it falls back to a plain `requests` GET (Luma server-renders, so both paths yield the same structured data — this keeps the demo cheap on Browserbase minutes).
+- Otherwise it falls back to a plain `requests` GET (Luma server-renders, so both paths yield the same structured data — this keeps Browserbase minutes cheap).
 
 Fetched HTML is parsed (Luma's `__NEXT_DATA__` JSON) into the Lookout event schema and **cached to disk**, so repeated polls don't re-hit the network or burn quota. The fetch is wrapped in fail-soft error handling so a flaky page never crashes the scout loop.
 
@@ -134,9 +157,9 @@ flowchart LR
     class BB b;
 ```
 
-### Sentry — *production-grade error monitoring on the live pipeline*
+### 🚨 Sentry — error monitoring on the live pipeline
 
-Sentry watches the backend for failures during the demo (`lookout/tracing.py` → `setup_sentry()`):
+Sentry watches the backend for failures in the running pipeline (`lookout/tracing.py` → `setup_sentry()`):
 
 - Initialized with the FastAPI + Starlette integrations so any unhandled exception in a request handler, the scout loop, or the act pipeline is captured with full context.
 - Deliberately configured **errors-only** (`traces_sample_rate=0.0`) so it does *not* overlap with Phoenix, which owns performance/agent tracing. Clean separation of concerns: **Sentry = "did something break?", Phoenix = "what did the agent do and how long did it take?"**
@@ -151,12 +174,12 @@ flowchart LR
     class SE s;
 ```
 
-### Arize Phoenix — *agent observability / tracing*
+### 🔭 Arize Phoenix — agent observability
 
 Phoenix is how we *see inside* the agents. Via OpenInference + OpenTelemetry (`lookout/tracing.py` → `setup_tracing()`), **every Claude call and every agent stage is captured as a span** and streamed to the Phoenix collector (`PHOENIX_COLLECTOR_ENDPOINT`, default `http://localhost:6006`):
 
 - The Anthropic client is auto-instrumented, so each spec-compile and relevance judgement shows up with prompts, tokens, and latency.
-- `agent_span()` / `set_span_output()` wrap `watch.process_event`, the `act_pipeline` (a CHAIN span), and each `agent.<stage>` — so a judge can watch the Scout → Judge → Strategist → Drafter → Critic pipeline reason in real time.
+- `agent_span()` / `set_span_output()` wrap `watch.process_event`, the `act_pipeline` (a CHAIN span), and each `agent.<stage>` — so the Scout → Judge → Strategist → Drafter → Critic pipeline can be watched reasoning in real time.
 - Fully **fail-soft**: if Phoenix isn't reachable, tracing degrades to a no-op and the app runs normally.
 
 ```mermaid
@@ -175,7 +198,7 @@ flowchart TD
 
 ---
 
-## Tech stack implementation — step by step
+## 🚀 Running it yourself
 
 > Prereqs: **Python 3.11**, **Node 18+**, and **Redis Stack** (RediSearch module required). Docker
 > optional — macOS/Homebrew works fine and needs no daemon running when you're not using the app.
@@ -221,7 +244,7 @@ ollama pull llama3.1:8b                  # ~4.7GB, needs ~8GB free RAM
 ```
 Prefer Claude instead? Skip this step and set `LOOKOUT_JUDGE_PROVIDER=anthropic` +
 `ANTHROPIC_API_KEY` in step 5. No key and no Ollama running? Lookout falls back to a deterministic
-regex-based stub judge — good enough to demo the plumbing, weaker at real judgment calls.
+regex-based stub judge — good enough to exercise the plumbing, weaker at real judgment calls.
 
 ### 4. Backend deps
 ```bash
@@ -290,7 +313,7 @@ python scripts/test_dedup.py # proves semantic suppression end-to-end
 
 ---
 
-## API surface
+## 🔌 API surface
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -303,7 +326,7 @@ python scripts/test_dedup.py # proves semantic suppression end-to-end
 
 ---
 
-## Architecture at a glance
+## 🧭 Architecture at a glance
 
 <div align="center">
   <img src="./public/workflow.svg" alt="Lookout workflow — input, tech stack, output" width="100%" />
@@ -342,7 +365,7 @@ python scripts/test_dedup.py # proves semantic suppression end-to-end
 
 ---
 
-## Repo layout
+## 📁 Repo layout
 
 ```
 src/                 # Vite dashboard (Search · Stay · Notify)
@@ -362,6 +385,19 @@ scripts/test_dedup.py
 
 ---
 
-## One-line pitch
+## 👥 Team
+
+Built in 24 hours at the **UC Berkeley AI Hackathon 2026** by a five-person team.
+
+| | |
+|---|---|
+| **[Oak Soe Khant](https://github.com/Mr-Shine09)** | Lead author — 27 of 52 commits. Suppression engine (Redis dedup + change detection), the judge and learned threshold, the five-stage act pipeline, and the Phoenix/Sentry observability layer. |
+| **[BennPhu](https://github.com/BennPhu)** | 21 commits — dashboard, Search/Stay/Notify flow, scrape source. |
+| **[brucenh](https://github.com/brucenh)**, **[HarryMan256](https://github.com/HarryMan256)** | Additional contributions. |
+
+
+---
+
+## 💡 In one line
 
 > **Every alert tool is built to notify you more. Lookout is the first built to notify you less.**
