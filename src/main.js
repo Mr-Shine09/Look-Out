@@ -6,55 +6,41 @@ import { el } from './lib/dom.js';
 import { createApi } from './api/index.js';
 import { pingSurfaced, requestNotifyPermission } from './lib/notify.js';
 import { createRouter } from './lib/router.js';
-import { mountBackdrop } from './lib/backdrop.js';
 import { Header } from './components/header.js';
 import { SearchPage } from './components/searchPage.js';
 import { StayPage } from './components/stayPage.js';
 import { ReportPage } from './components/reportPage.js';
+import { OverviewPage } from './components/overviewPage.js';
+import { DevPage } from './components/devPage.js';
 
 const api = createApi();
 
 // Active topic the user is following (carried across Search → Stay → Report).
 let scope = { watchId: null, title: 'your watch' };
 
-const TIME_PHRASES = {
-  week: 'opening within the next week',
-  month: 'opening within the next month',
-  quarter: 'opening within the next quarter',
-  any: null,
-};
-
-// Turn the structured searchSpec from the Search page into a single, richer
-// query string. Keeps createWatch's signature unchanged (mock/real parity);
-// the structured spec stays frontend-local and constrains the compiled query.
-function composeQuery(query, spec) {
-  if (!spec) return query;
-  const clauses = [];
-  const loc = spec.location || {};
-  if (loc.text) {
-    clauses.push(
-      loc.radiusMi ? `within ~${loc.radiusMi}mi of ${loc.text}` : `in or near ${loc.text}`
-    );
-  }
-  if (loc.onlineOk) clauses.push('online events are acceptable');
-  const timePhrase = TIME_PHRASES[spec.timeWindow];
-  if (timePhrase) clauses.push(timePhrase);
-  if (spec.types?.length) clauses.push(`type is one of: ${spec.types.join(', ')}`);
-  if (spec.sources?.length) clauses.push(`only from sources: ${spec.sources.join(', ')}`);
-  if (spec.include?.length) clauses.push(`must mention: ${spec.include.join(', ')}`);
-  if (spec.exclude?.length) clauses.push(`never about: ${spec.exclude.join(', ')}`);
-  if (typeof spec.strictness === 'number') {
-    const band = spec.strictness <= 33 ? 'loose' : spec.strictness <= 66 ? 'balanced' : 'strict';
-    clauses.push(`suppression strictness: ${band}`);
-  }
-  if (!clauses.length) return query;
-  return `${query} (constraints — ${clauses.join('; ')})`;
+// ---- Developer window flag ----------------------------------------------
+// The dev window is friction-gated, not secured (static bundle): visiting
+// #/dev?key=oak once sets a local flag; only then does the Dev nav item and
+// route exist. Clear localStorage.lookoutDev to hide it again.
+if (/^#\/dev\?key=oak$/.test(window.location.hash)) {
+  localStorage.setItem('lookoutDev', '1');
+  window.location.hash = '#/dev';
 }
+const devEnabled = localStorage.getItem('lookoutDev') === '1';
 
 // ---- Pages -------------------------------------------------------------
-const header = Header({ onNavigate: (key) => router.navigate(key) });
+const header = Header({ onNavigate: (key) => router.navigate(key), showDev: devEnabled });
 
-const search = SearchPage({ onFollow: handleFollow });
+const overview = OverviewPage({
+  api,
+  onOpenWatch: ({ watchId, title }) => {
+    scope = { watchId, title: title || 'your watch' };
+    router.navigate('stay');
+  },
+  onNewSearch: () => goSearch(),
+});
+const dev = devEnabled ? DevPage({ api }) : null;
+const search = SearchPage({ api, onFollow: handleFollow });
 const report = ReportPage({ api, onBack: (s) => goStay(s) });
 const stay = StayPage({
   api,
@@ -62,25 +48,42 @@ const stay = StayPage({
     scope = { ...scope, ...s };
     router.navigate('report');
   },
+  onNewSearch: () => goSearch(),
+  onDeleted: (watchId) => {
+    overview.dropWatch(watchId);
+    if (scope.watchId === watchId) scope = { watchId: null, title: 'your watch' };
+    router.navigate('overview');
+  },
 });
 
 // ---- Layout ------------------------------------------------------------
 const app = document.getElementById('app');
 app.append(
   header.node,
-  el('main', { class: 'app-main' }, [search.node, stay.node, report.node])
+  el('main', { class: 'app-main' }, [overview.node, search.node, stay.node, report.node, dev?.node])
 );
 
 // ---- Router ------------------------------------------------------------
 const router = createRouter({
   fallback: 'search',
   routes: [
-    { key: 'search', node: search.node, onShow: () => header.setActive('search') },
+    {
+      key: 'overview',
+      node: overview.node,
+      onShow: () => {
+        header.setActive('overview');
+        dev?.hide();
+        overview.show();
+      },
+    },
+    { key: 'search', node: search.node, onShow: () => { header.setActive('search'); overview.hide(); dev?.hide(); } },
     {
       key: 'stay',
       node: stay.node,
       onShow: () => {
         header.setActive('stay');
+        overview.hide();
+        dev?.hide();
         stay.show(scope);
       },
     },
@@ -89,9 +92,24 @@ const router = createRouter({
       node: report.node,
       onShow: () => {
         header.setActive('report');
+        overview.hide();
+        dev?.hide();
         report.show(scope);
       },
     },
+    ...(dev
+      ? [
+          {
+            key: 'dev',
+            node: dev.node,
+            onShow: () => {
+              header.setActive('dev');
+              overview.hide();
+              dev.show();
+            },
+          },
+        ]
+      : []),
   ],
 });
 
@@ -100,24 +118,26 @@ function goStay(nextScope) {
   router.navigate('stay');
 }
 
-async function handleFollow({ query, spec, watchId, title }) {
-  if (watchId) {
-    // Reuse an existing feed — instant, no new compile.
-    scope = { watchId, title: title || query, spec };
-    goStay(scope);
-    return;
+// "New search" stops the active watch's polling (it isn't deleted — just
+// paused, same as the explicit Stop button) before handing the user a clean
+// Search page.
+async function goSearch() {
+  if (scope.watchId) {
+    try {
+      await api.setWatchStatus?.(scope.watchId, 'stopped');
+    } catch (err) {
+      console.warn('[new search] stop watch failed', err);
+    }
   }
-  // Custom search → compile a fresh feed from the query + structured spec.
-  const composed = composeQuery(query, spec);
-  scope = { watchId: null, title: query, spec };
+  search.reset?.();
+  router.navigate('search');
+}
+
+// SearchPage owns the whole create → compile → confirm flow itself; by the
+// time onFollow fires the watch already exists and its spec is saved.
+function handleFollow({ query, watchId, title }) {
+  scope = { watchId, title: title || query };
   goStay(scope);
-  try {
-    const { watch_id } = await api.createWatch(composed, spec);
-    scope = { watchId: watch_id, title: query };
-    stay.show(scope);
-  } catch (err) {
-    console.error('[follow] createWatch failed', err);
-  }
 }
 
 // ---- Live feed dispatch ------------------------------------------------
@@ -125,6 +145,8 @@ api.subscribe((msg) => {
   switch (msg.type) {
     case 'candidate':
       stay.handleCandidate(msg);
+      overview.handleCandidate(msg);
+      dev?.handleCandidate(msg);
       // Live surfaced match (flagged server-side) -> ping. Backfill never sets notify.
       if (msg.notify && msg.judgment === 'accepted') pingSurfaced(msg);
       break;
@@ -132,9 +154,14 @@ api.subscribe((msg) => {
       stay.handlePipeline(msg);
       break;
     case 'curve_update':
-      stay.handleCurve(msg);
+      dev?.handleCurve(msg);
+      break;
+    case 'watch_deleted':
+      overview.dropWatch(msg.watch_id);
+      dev?.dropWatch(msg.watch_id);
       break;
     case 'spec_ready':
+      search.handleSpecReady(msg);
       break;
     default:
       break;
@@ -167,7 +194,6 @@ function registerReveals() {
 }
 
 // ---- Bootstrap ---------------------------------------------------------
-mountBackdrop();
 router.start();
 api.start();
 registerReveals();

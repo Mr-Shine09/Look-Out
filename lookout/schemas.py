@@ -17,6 +17,10 @@ class SpecUpdate(BaseModel):
     reject_cases: list[str] = Field(default_factory=list)
 
 
+class WatchStatusUpdate(BaseModel):
+    status: Literal["watching", "stopped"]
+
+
 class DeliveryUpdate(BaseModel):
     channels: list[str] = Field(default_factory=list)
     discord_webhook: str = ""

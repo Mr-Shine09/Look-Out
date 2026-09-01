@@ -2,7 +2,7 @@ import { el, clear } from '../lib/dom.js';
 import { CandidateCard } from './candidateCard.js';
 import { Pipeline } from './pipeline.js';
 import { autoApply } from '../lib/autoApply.js';
-import { PrecisionCurve } from './precisionCurve.js';
+import { classify, tally } from '../lib/classify.js';
 
 /** Tween a number element from its current value to `to` (cubic ease-out). */
 function animateCount(node, to) {
@@ -32,14 +32,13 @@ function animateCount(node, to) {
  * A "show what it silenced" toggle reveals the suppressed items so the
  * mechanism is provable live.
  */
-export function StayPage({ api, onReport }) {
+export function StayPage({ api, onReport, onNewSearch, onDeleted }) {
   const pipeline = Pipeline();
   pipeline.node.hidden = true; // on-demand: only appears once the user hits "act"
-  const curve = PrecisionCurve();
-  curve.node.classList.add('reveal'); // wash-in on scroll
   let scope = { watchId: null, title: 'your watch' };
   const records = new Map(); // cid -> candidate
   let lastCheckedAt = Date.now();
+  let watchStatus = 'watching';
 
   const handlers = {
     onFeedback: (candId, label, watchId) => api.sendFeedback(candId, label, watchId || scope.watchId),
@@ -78,6 +77,27 @@ export function StayPage({ api, onReport }) {
   }
   setInterval(refreshLiveness, 1000);
 
+  // Safety-net resync: a local Ollama backfill can take minutes (vs. seconds
+  // for a hosted API), so a candidate can finish server-side and broadcast
+  // over the websocket before the page has settled on the right watchId
+  // (e.g. right after createWatch resolves). Poll the REST list periodically
+  // so results always land even if a live broadcast was missed or dropped.
+  async function resync() {
+    if (!scope.watchId) return;
+    try {
+      const existing = await api.getCandidates?.(scope.watchId);
+      let changed = false;
+      for (const cand of existing || []) {
+        if (!records.has(cand.id)) changed = true;
+        ingest(cand);
+      }
+      if (changed) render();
+    } catch (err) {
+      console.warn('[stay] resync failed', err);
+    }
+  }
+  setInterval(resync, 5000);
+
   // ---- Headline ratio ----------------------------------------------------
   const surfacedBig = el('span', { class: 'ratio-num ratio-num--surfaced', text: '0' });
   const silencedBig = el('span', { class: 'ratio-num ratio-num--silenced', text: '0' });
@@ -89,6 +109,7 @@ export function StayPage({ api, onReport }) {
   // ---- Secondary stat tiles ----------------------------------------------
   const dupNum = el('span', { class: 'stat-num', text: '0' });
   const offNum = el('span', { class: 'stat-num', text: '0' });
+  const expiredNum = el('span', { class: 'stat-num', text: '0' });
   const seenNum = el('span', { class: 'stat-num', text: '0' });
 
   let showSilenced = false;
@@ -99,33 +120,81 @@ export function StayPage({ api, onReport }) {
     render();
   });
 
+  // ---- Stop / resume the active watch ------------------------------------
+  const stopToggle = el('button', { class: 'ghost-btn', type: 'button' }, ['Stop watching']);
+  function setWatchStatusUI(status) {
+    // "compiling" is a normal transitional state (spec not compiled yet), not
+    // a paused one — only the explicit "stopped" status should read as paused.
+    watchStatus = status;
+    const stopped = status === 'stopped';
+    stopToggle.textContent = stopped ? 'Resume watching' : 'Stop watching';
+    liveDot.classList.toggle('live-dot--paused', stopped);
+    liveCheckedEl.textContent = stopped ? 'stopped' : liveCheckedEl.textContent;
+  }
+  stopToggle.addEventListener('click', async () => {
+    if (!scope.watchId) return;
+    const next = watchStatus === 'stopped' ? 'watching' : 'stopped';
+    stopToggle.disabled = true;
+    try {
+      await api.setWatchStatus?.(scope.watchId, next);
+      setWatchStatusUI(next);
+    } catch (err) {
+      console.warn('[stay] setWatchStatus failed', err);
+    } finally {
+      stopToggle.disabled = false;
+    }
+  });
+
+  const newSearchBtn = el(
+    'button',
+    { class: 'ghost-btn', type: 'button', onClick: () => onNewSearch?.() },
+    ['New search']
+  );
+
+  // ---- Delete the active watch (two-step confirm, never one-click) --------
+  let deleteArmed = false;
+  let deleteTimer = null;
+  const deleteBtn = el('button', { class: 'ghost-btn ghost-btn--danger', type: 'button' }, ['Delete watch']);
+  function disarmDelete() {
+    deleteArmed = false;
+    deleteBtn.textContent = 'Delete watch';
+    deleteBtn.classList.remove('ghost-btn--armed');
+    if (deleteTimer) {
+      clearTimeout(deleteTimer);
+      deleteTimer = null;
+    }
+  }
+  deleteBtn.addEventListener('click', async () => {
+    if (!scope.watchId) return;
+    if (!deleteArmed) {
+      // First click arms; it self-disarms after a few seconds so a stray click
+      // can never delete on its own.
+      deleteArmed = true;
+      deleteBtn.textContent = 'Confirm delete';
+      deleteBtn.classList.add('ghost-btn--armed');
+      deleteTimer = setTimeout(disarmDelete, 4000);
+      return;
+    }
+    disarmDelete();
+    deleteBtn.disabled = true;
+    try {
+      await api.deleteWatch?.(scope.watchId);
+      onDeleted?.(scope.watchId);
+    } catch (err) {
+      console.warn('[stay] deleteWatch failed', err);
+      deleteBtn.disabled = false;
+    }
+  });
+
   const feed = el('div', { class: 'stay-feed' });
 
-  function classify(cand) {
-    if (cand.state === 'duplicate') return 'duplicate';
-    if (cand.judgment === 'accepted') return 'surfaced';
-    return 'offtopic';
-  }
-
-  function counts() {
-    let surfaced = 0;
-    let dup = 0;
-    let off = 0;
-    for (const cand of records.values()) {
-      const k = classify(cand);
-      if (k === 'surfaced') surfaced += 1;
-      else if (k === 'duplicate') dup += 1;
-      else off += 1;
-    }
-    return { surfaced, dup, off, silenced: dup + off, seen: records.size };
-  }
-
   function updateStats() {
-    const { surfaced, dup, off, silenced, seen } = counts();
+    const { surfaced, dup, off, expired, silenced, seen } = tally(records.values());
     animateCount(surfacedBig, surfaced);
     animateCount(silencedBig, silenced);
     animateCount(dupNum, dup);
     animateCount(offNum, off);
+    animateCount(expiredNum, expired);
     animateCount(seenNum, seen);
 
     const total = surfaced + silenced;
@@ -163,6 +232,7 @@ export function StayPage({ api, onReport }) {
     const surfaced = all.filter((c) => classify(c) === 'surfaced');
     const duplicates = all.filter((c) => classify(c) === 'duplicate');
     const offtopic = all.filter((c) => classify(c) === 'offtopic');
+    const expired = all.filter((c) => classify(c) === 'expired');
 
     if (!all.length) {
       feed.append(
@@ -188,6 +258,7 @@ export function StayPage({ api, onReport }) {
     if (showSilenced) {
       appendSection(duplicates, { label: 'Silenced — semantic duplicates', variant: 'dup', silenced: true });
       appendSection(offtopic, { label: 'Silenced — off-topic', variant: 'off', silenced: true });
+      appendSection(expired, { label: 'Silenced — event has already passed', variant: 'expired', silenced: true });
     }
   }
 
@@ -198,15 +269,6 @@ export function StayPage({ api, onReport }) {
     lastCheckedAt = Date.now();
   }
 
-  async function loadCurve() {
-    try {
-      const pts = await api.getCurve?.();
-      if (Array.isArray(pts)) curve.setPoints(pts);
-    } catch (err) {
-      console.warn('[stay] curve load failed', err);
-    }
-  }
-
   async function show(next = {}) {
     scope = { watchId: next.watchId || null, title: next.title || next.query || 'your watch' };
     topicEl.textContent = scope.title;
@@ -214,6 +276,11 @@ export function StayPage({ api, onReport }) {
     pipeline.reset();
     pipeline.node.hidden = true;
     lastCheckedAt = Date.now();
+    setWatchStatusUI('watching');
+    // The delete button is disabled during an in-flight delete and the instance
+    // is reused across watches — re-arm it fresh for whatever we're now showing.
+    deleteBtn.disabled = false;
+    disarmDelete();
     refreshLiveness();
     render();
     try {
@@ -222,8 +289,16 @@ export function StayPage({ api, onReport }) {
     } catch (err) {
       console.warn('[stay] load failed', err);
     }
+    if (scope.watchId) {
+      try {
+        const watches = await api.getWatches?.();
+        const match = watches?.find((w) => w.id === scope.watchId);
+        if (match?.status) setWatchStatusUI(match.status);
+      } catch (err) {
+        console.warn('[stay] watch status load failed', err);
+      }
+    }
     render();
-    loadCurve();
   }
 
   function handleCandidate(msg) {
@@ -235,18 +310,17 @@ export function StayPage({ api, onReport }) {
     pipeline.update(msg);
   }
 
-  function handleCurve(msg) {
-    curve.addPoint({ timestamp: msg.timestamp, false_alarm_rate: msg.false_alarm_rate });
-  }
-
   const node = el('section', { class: 'page page-stay', hidden: true }, [
     el('div', { class: 'stay-head' }, [
-      el('div', {}, [
+      el('div', { class: 'stay-head-title' }, [
         el('p', { class: 'eyebrow', text: 'Stay' }),
         el('h1', { class: 'stay-title head' }, ['Lookout is watching ', topicEl, ' — and staying quiet.']),
       ]),
       el('div', { class: 'stay-head-actions' }, [
+        newSearchBtn,
+        stopToggle,
         silenceToggle,
+        deleteBtn,
         el('button', { class: 'primary-btn', type: 'button', onClick: () => onReport?.(scope) }, ['Get these delivered →']),
       ]),
     ]),
@@ -269,12 +343,12 @@ export function StayPage({ api, onReport }) {
     el('div', { class: 'stay-stats' }, [
       el('div', { class: 'stat stat--dup' }, [dupNum, el('span', { class: 'stat-label', text: 'duplicates silenced' })]),
       el('div', { class: 'stat stat--off' }, [offNum, el('span', { class: 'stat-label', text: 'off-topic filtered' })]),
+      el('div', { class: 'stat stat--expired' }, [expiredNum, el('span', { class: 'stat-label', text: 'already passed' })]),
       el('div', { class: 'stat stat--seen' }, [seenNum, el('span', { class: 'stat-label', text: 'total updates seen' })]),
     ]),
     feed,
-    curve.node,
     pipeline.node,
   ]);
 
-  return { node, key: 'stay', onShow: () => {}, show, handleCandidate, handlePipeline, handleCurve };
+  return { node, key: 'stay', onShow: () => {}, show, handleCandidate, handlePipeline };
 }

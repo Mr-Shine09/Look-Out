@@ -13,10 +13,6 @@ dist-ssr/
 .env.local
 *.local
 CREDENTIALS.local.md
-# Keyed handoff briefs (contain live API keys) — keep local, hand off privately
-BRUCE-BACKEND-TRACK.md
-HARRISON-FRONTEND-TRACK.md
-# OAK-INFRA-TRACK.md is keyless (points to .env) — safe to keep readable/committable
 .venv/
 .DS_Store
 .vscode/*

@@ -96,6 +96,21 @@ export function createRealApi(baseUrl = '') {
       }));
     },
 
+    async setWatchStatus(watchId, status) {
+      return normalizeWatch(await request(`/api/watches/${encodeURIComponent(watchId)}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      }));
+    },
+
+    async deleteWatch(watchId) {
+      return request(`/api/watches/${encodeURIComponent(watchId)}`, { method: 'DELETE' });
+    },
+
+    async notifyWatch(watchId) {
+      return request(`/api/watches/${encodeURIComponent(watchId)}/notify`, { method: 'POST' });
+    },
+
     async getCurve() {
       return asArray(await request('/api/curve')).map(normalizeCurvePoint);
     },

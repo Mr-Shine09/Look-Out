@@ -22,6 +22,7 @@ const CANDIDATE_INTERVAL_MS = 3200; // emit a candidate roughly every few second
 const CURVE_INTERVAL_MS = 12000; // periodic curve update (10-15s)
 const SEED_FALSE_ALARM = 0.33; // backend seed value — gives the curve room to fall
 const PIPELINE_STAGES = ['scout', 'judge', 'strategist', 'drafter', 'critic'];
+const MAX_ACTIVE_WATCHES = 3; // mirrors LOOKOUT_MAX_ACTIVE_WATCHES on the real backend
 
 let _cidCounter = 1000;
 const nextCid = () => `c_${++_cidCounter}`;
@@ -87,6 +88,7 @@ export function createMockApi() {
       title: template.title,
       source: template.source,
       url: template.url,
+      thumbnail: template.thumbnail,
       location: template.location,
       starts_at: template.starts_at,
       status: template.status,
@@ -109,6 +111,7 @@ export function createMockApi() {
       title: cand.title,
       source: cand.source,
       url: cand.url,
+      thumbnail: cand.thumbnail,
       location: cand.location,
       starts_at: cand.starts_at,
       status: cand.status,
@@ -132,8 +135,17 @@ export function createMockApi() {
     }));
   }
 
+  function activeWatchCount(excludeId) {
+    return watches.filter((w) => w.status !== 'stopped' && w.id !== excludeId).length;
+  }
+
   async function createWatch(queryText, searchSpec) {
     await tick(150); // 202 Accepted
+    if (activeWatchCount() >= MAX_ACTIVE_WATCHES) {
+      throw new Error(
+        `409: Active watch limit reached (${MAX_ACTIVE_WATCHES}). Stop or delete a watch first.`
+      );
+    }
     const id = `w_${Date.now().toString(36)}`;
     // `searchSpec` mirrors the real backend's `search_spec` param; stored for
     // parity/debugging even though the stub spec is derived from query text.
@@ -222,6 +234,15 @@ export function createMockApi() {
     return { ok: true, applied_at: new Date().toISOString() };
   }
 
+  async function notifyWatch(watchId) {
+    await tick(300); // simulate the round-trip to Discord without any real network call
+    const surfaced = [...candidates.values()].filter(
+      (c) => c.watch_id === watchId && c.judgment === 'accepted' && c.state !== 'duplicate'
+    );
+    if (!surfaced.length) return { ok: false, error: 'Nothing surfaced yet for this watch.' };
+    return { ok: true, sent: surfaced.length, total: surfaced.length };
+  }
+
   async function getCandidates(watchId) {
     await tick(100);
     return [...candidates.values()]
@@ -246,6 +267,31 @@ export function createMockApi() {
       });
     }
     return { id: watchId, ...(watch || {}) };
+  }
+
+  async function setWatchStatus(watchId, status) {
+    await tick(80);
+    if (status === 'watching' && activeWatchCount(watchId) >= MAX_ACTIVE_WATCHES) {
+      throw new Error(
+        `409: Active watch limit reached (${MAX_ACTIVE_WATCHES}). Stop or delete a watch first.`
+      );
+    }
+    const watch = watches.find((w) => w.id === watchId);
+    if (watch) watch.status = status;
+    return { id: watchId, ...(watch || {}) };
+  }
+
+  async function deleteWatch(watchId) {
+    await tick(80);
+    const idx = watches.findIndex((w) => w.id === watchId);
+    if (idx === -1) return { ok: false, watch_id: watchId };
+    watches.splice(idx, 1);
+    delete queues[watchId];
+    for (const [cid, cand] of candidates) {
+      if (cand.watch_id === watchId) candidates.delete(cid);
+    }
+    bus.emit({ type: 'watch_deleted', watch_id: watchId });
+    return { ok: true, watch_id: watchId };
   }
 
   // ---- Pipeline (V3) ----------------------------------------------------
@@ -333,6 +379,9 @@ export function createMockApi() {
     applyCandidate,
     getCandidates,
     updateSpec,
+    setWatchStatus,
+    deleteWatch,
+    notifyWatch,
     triggerPipeline,
     injectLiveFire,
     start,

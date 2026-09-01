@@ -1,0 +1,32 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "set -a; . ./.env; set +a; REDIS_URL=redis://localhost:6379 LOOKOUT_JUDGE_PROVIDER=ollama LOOKOUT_EVENT_SOURCE=scrape LOOKOUT_USE_BROWSERBASE=0 LOOKOUT_POLL_SECONDS=3600 LOOKOUT_EVENT_BATCH_SIZE=8 ./venv-backend/bin/uvicorn lookout.app:app --host 127.0.0.1 --port 8000"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "VITE_USE_REAL_BACKEND=true VITE_API_BASE=http://127.0.0.1:8000 node_modules/.bin/vite --host 127.0.0.1 --port 5173 --strictPort"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "frontend-mock",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "node_modules/.bin/vite --host 127.0.0.1 --port 5174 --strictPort"
+      ],
+      "port": 5174
+    }
+  ]
+}

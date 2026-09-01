@@ -8,13 +8,17 @@ one failure never hides the others, and nothing here writes any feature code.
 
 Reads everything from environment variables (never hard-code secrets):
 
-  ANTHROPIC_API_KEY        Claude
+  ANTHROPIC_API_KEY        Claude (optional — only needed if LOOKOUT_JUDGE_PROVIDER=anthropic)
+  LOOKOUT_JUDGE_PROVIDER   auto | anthropic | ollama | stub  (default: auto)
+  LOOKOUT_OLLAMA_HOST      defaults to http://localhost:11434
+  LOOKOUT_OLLAMA_MODEL     defaults to llama3.1:8b
   REDIS_URL                e.g. redis://default:<pass>@<host>:<port>
                            (or set REDIS_HOST / REDIS_PORT / REDIS_PASSWORD)
-  BROWSERBASE_API_KEY      Browserbase
-  BROWSERBASE_PROJECT_ID   Browserbase
+  BROWSERBASE_API_KEY      Browserbase (optional — off by default)
+  BROWSERBASE_PROJECT_ID   Browserbase (optional — off by default)
   PHOENIX_URL              defaults to http://localhost:6006
   SENTRY_DSN               Sentry project DSN (backend error monitoring)
+  LOOKOUT_DISCORD_WEBHOOK  Discord incoming-webhook URL (optional notify channel)
 
 Usage:
   python verify.py
@@ -39,8 +43,15 @@ G, R, Y, DIM, RST = "\033[32m", "\033[31m", "\033[33m", "\033[2m", "\033[0m"
 
 def check_claude():
     key = os.environ.get("ANTHROPIC_API_KEY")
+    provider = os.environ.get("LOOKOUT_JUDGE_PROVIDER", "auto").lower()
+    effective = provider if provider != "auto" else ("anthropic" if key else "stub")
+    if effective != "anthropic":
+        # Claude isn't the active judge — don't spend/require a call, just report presence.
+        if key:
+            return None, f"set but unused (LOOKOUT_JUDGE_PROVIDER={provider} — not tested)"
+        return None, "not set (optional — judge falls back to Ollama/stub)"
     if not key:
-        return False, "ANTHROPIC_API_KEY not set"
+        return False, "ANTHROPIC_API_KEY not set but LOOKOUT_JUDGE_PROVIDER=anthropic"
     try:
         import anthropic
     except ImportError:
@@ -109,6 +120,39 @@ def check_browserbase():
         return False, f"{type(e).__name__}: {e}"
 
 
+def check_ollama():
+    host = os.environ.get("LOOKOUT_OLLAMA_HOST", "http://localhost:11434")
+    provider = os.environ.get("LOOKOUT_JUDGE_PROVIDER", "auto").lower()
+    model = os.environ.get("LOOKOUT_OLLAMA_MODEL", "llama3.1:8b")
+    try:
+        import httpx
+    except ImportError:
+        return False, "httpx not installed  ->  pip install httpx"
+    try:
+        resp = httpx.get(f"{host}/api/tags", timeout=3)
+        if resp.status_code != 200:
+            raise RuntimeError(f"HTTP {resp.status_code}")
+        names = [m.get("name", "") for m in resp.json().get("models", [])]
+        if any(model.split(":")[0] in n for n in names):
+            return True, f"{host} reachable, {model} pulled"
+        return True, f"{host} reachable, but {model} not pulled  ->  ollama pull {model}"
+    except Exception as e:
+        if provider == "ollama":
+            return False, f"{type(e).__name__}: {e}  (is `ollama serve` running at {host}?)"
+        return None, f"not reachable at {host} (only needed if LOOKOUT_JUDGE_PROVIDER=ollama)"
+
+
+def check_discord():
+    hook = os.environ.get("LOOKOUT_DISCORD_WEBHOOK")
+    if not hook:
+        return None, "LOOKOUT_DISCORD_WEBHOOK not set (optional notify channel)"
+    if hook.startswith("https://discord.com/api/webhooks/") or hook.startswith(
+        "https://discordapp.com/api/webhooks/"
+    ):
+        return True, "webhook URL shape looks valid (not sent — avoids spamming the channel)"
+    return False, "set but doesn't look like a Discord webhook URL"
+
+
 def check_phoenix():
     url = os.environ.get("PHOENIX_URL", "http://localhost:6006")
     try:
@@ -146,10 +190,12 @@ def check_sentry():
 
 CHECKS = [
     ("Claude API", check_claude),
+    ("Ollama", check_ollama),
     ("Redis", check_redis),
     ("Browserbase", check_browserbase),
     ("Phoenix UI", check_phoenix),
     ("Sentry", check_sentry),
+    ("Discord", check_discord),
 ]
 
 

@@ -11,6 +11,9 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 class Settings:
     redis_url: str
     anthropic_api_key: str | None
+    judge_provider: str
+    ollama_host: str
+    ollama_model: str
     poll_seconds: int
     event_batch_size: int
     events_path: Path
@@ -19,6 +22,7 @@ class Settings:
     cors_origins: list[str]
     cors_origin_regex: str | None
     seed_default_watch: bool
+    max_active_watches: int
     event_source: str
     scrape_sources: list[str]
     scrape_cache_path: Path
@@ -48,6 +52,9 @@ def get_settings() -> Settings:
     return Settings(
         redis_url=os.getenv("REDIS_URL", "redis://localhost:6379"),
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY") or None,
+        judge_provider=os.getenv("LOOKOUT_JUDGE_PROVIDER", "auto").lower(),
+        ollama_host=os.getenv("LOOKOUT_OLLAMA_HOST", "http://localhost:11434"),
+        ollama_model=os.getenv("LOOKOUT_OLLAMA_MODEL", "llama3.1:8b"),
         poll_seconds=int(os.getenv("LOOKOUT_POLL_SECONDS", "5")),
         event_batch_size=int(os.getenv("LOOKOUT_EVENT_BATCH_SIZE", "3")),
         events_path=Path(os.getenv("LOOKOUT_EVENTS_PATH", str(ROOT_DIR / "data" / "events.json"))),
@@ -60,7 +67,8 @@ def get_settings() -> Settings:
             "LOOKOUT_CORS_ORIGIN_REGEX", r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
         )
         or None,
-        seed_default_watch=os.getenv("LOOKOUT_SEED_DEFAULT_WATCH", "1") != "0",
+        seed_default_watch=os.getenv("LOOKOUT_SEED_DEFAULT_WATCH", "0") != "0",
+        max_active_watches=int(os.getenv("LOOKOUT_MAX_ACTIVE_WATCHES", "3")),
         event_source=os.getenv("LOOKOUT_EVENT_SOURCE", "seed").lower(),
         scrape_sources=[s.strip() for s in scrape_sources.split(",") if s.strip()],
         scrape_cache_path=Path(
